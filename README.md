@@ -48,6 +48,35 @@ cd C:\Users\BARIS\Desktop\Okul\316\ImplementationPlan
 docker compose logs -f
 ```
 
+## Demo Credentials (Seeded on Startup)
+
+Password for all demo users: `Demo123!`
+
+- Student: `demo.student@utms.local`
+- OIDB: `demo.oidb@utms.local`
+- YDYO: `demo.ydyo@utms.local`
+- YGK: `demo.ygk@utms.local`
+- Intibak: `demo.intibak@utms.local`
+- Admin: `demo.admin@utms.local`
+
+## End-to-End Smoke Script
+
+Run this after `docker compose up -d --build`:
+
+```powershell
+cd C:\Users\BARIS\Desktop\Okul\316\ImplementationPlan
+.\demo-smoke.ps1
+```
+
+Expected result:
+
+- Student creates and submits an application
+- OIDB takes review and forwards to YDYO
+- YDYO approves English review
+- YGK evaluates and accepts
+- Intibak adds exemption and decides EXEMPT
+- Script ends with `E2E SMOKE PASS`
+
 ## Local Development Run
 
 Frontend:
