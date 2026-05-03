@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { register as registerThunk, clearError } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
+import iyteLogo from '../../assets/iyte-logo.png';
 
 interface FormValues {
   email: string;
@@ -29,6 +30,7 @@ export default function RegisterPage() {
   return (
     <div style={styles.page}>
       <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
+        <img src={iyteLogo} alt="IYTE logo" style={styles.logo} />
         <h1 style={styles.title}>Create Account</h1>
 
         {error && <div style={styles.serverError}>{error}</div>}
@@ -69,6 +71,7 @@ export default function RegisterPage() {
 const styles = {
   page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' } as React.CSSProperties,
   card: { background: '#fff', padding: '2rem', borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.1)', width: 360, display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
   title: { margin: '0 0 1rem', fontSize: 22, color: '#1d3c6e', textAlign: 'center' as const },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
   input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14 } as React.CSSProperties,

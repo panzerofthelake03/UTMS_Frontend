@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import type { UserRole } from '../../store/authSlice';
+import iyteLogo from '../../assets/iyte-logo.png';
 
 interface FormValues { email: string; password: string }
 
@@ -36,6 +37,7 @@ export default function LoginPage() {
   return (
     <div style={styles.page}>
       <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
+        <img src={iyteLogo} alt="IYTE logo" style={styles.logo} />
         <h1 style={styles.title}>UTMS Login</h1>
 
         {error && <div style={styles.serverError}>{error}</div>}
@@ -88,6 +90,7 @@ const styles = {
     flexDirection: 'column' as const,
     gap: 6,
   },
+  logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
   title: { margin: '0 0 1rem', fontSize: 22, color: '#1d3c6e', textAlign: 'center' as const },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
   input: {

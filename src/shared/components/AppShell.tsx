@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../hooks';
 import { logout } from '../../store/authSlice';
 import { notificationApi } from '../api/notificationApi';
 import NotificationPanel from '../../features/notifications/NotificationPanel';
+import iyteLogo from '../../assets/iyte-logo.png';
 
 export default function AppShell() {
   const dispatch = useAppDispatch();
@@ -37,8 +38,9 @@ export default function AppShell() {
           gap: 16,
         }}
       >
-        <Link to="/" style={{ color: '#fff', fontWeight: 700, fontSize: 18, textDecoration: 'none' }}>
-          UTMS
+        <Link to="/" style={brandLink}>
+          <img src={iyteLogo} alt="IYTE logo" style={brandLogo} />
+          <span>UTMS</span>
         </Link>
         <span style={{ flex: 1 }} />
         {user && (
@@ -172,3 +174,21 @@ function buildNavLinks(role: string): { to: string; label: string }[] {
       return [];
   }
 }
+
+const brandLink: React.CSSProperties = {
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: 18,
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 10,
+};
+
+const brandLogo: React.CSSProperties = {
+  width: 30,
+  height: 30,
+  objectFit: 'contain',
+  borderRadius: '50%',
+  background: '#fff',
+};

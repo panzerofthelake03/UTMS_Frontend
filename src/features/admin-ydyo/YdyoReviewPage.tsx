@@ -120,7 +120,7 @@ export default function YdyoReviewPage() {
           />
         </div>
       )}
-      {app.status === 'UNDER_YDYO_REVIEW' && (
+      {(app.status === 'UNDER_YDYO_REVIEW' || app.status === 'WAITING_EXAM_RESULT') && (
         <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>English Proficiency Decision</h3>
           {serverError && <div style={errBox}>{serverError}</div>}
