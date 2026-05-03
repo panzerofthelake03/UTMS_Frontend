@@ -13,7 +13,7 @@ export interface AdminApplication extends Application {
 
 export interface EnglishReviewRequest {
   decision: string;
-  note: string;
+  reviewerNote: string;
 }
 
 export interface EvaluationRequest {
@@ -77,6 +77,8 @@ export const adminApi = {
   // OIDB
   oidbList: () =>
     axiosInstance.get<{ data: AdminApplication[] }>('/api/oidb/applications'),
+  oidbTakeReview: (id: number) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/take-review`),
   oidbForwardYdyo: (id: number, note: string) =>
     axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/forward-ydyo`, { note }),
 

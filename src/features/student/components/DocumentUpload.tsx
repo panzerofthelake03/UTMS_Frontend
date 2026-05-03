@@ -7,19 +7,36 @@ const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
 interface Props {
   applicationId: number;
   onUploaded: (doc: Document) => void;
+  lockedDocumentType?: string;
 }
 
-export default function DocumentUpload({ applicationId, onUploaded }: Props) {
+const DOCUMENT_TYPES = [
+  { value: 'ENGLISH_PROFICIENCY', label: 'English Proficiency' },
+  { value: 'TRANSCRIPT', label: 'Transcript' },
+  { value: 'IDENTITY', label: 'Identity Document' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [documentType, setDocumentType] = useState(lockedDocumentType ?? '');
   const [clientError, setClientError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const effectiveDocumentType = lockedDocumentType ?? documentType;
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setClientError(null);
     setServerError(null);
+
+    if (!effectiveDocumentType) {
+      setClientError('Please select a document type before uploading.');
+      if (inputRef.current) inputRef.current.value = '';
+      return;
+    }
 
     if (file.type !== 'application/pdf') {
       setClientError('Only PDF files are accepted.');
@@ -32,7 +49,7 @@ export default function DocumentUpload({ applicationId, onUploaded }: Props) {
 
     setUploading(true);
     try {
-      const res = await applicationApi.uploadDocument(applicationId, file, 'ENGLISH_PROFICIENCY');
+      const res = await applicationApi.uploadDocument(applicationId, file, effectiveDocumentType);
       onUploaded(res.data.data);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: { message?: string } } } };
@@ -45,8 +62,30 @@ export default function DocumentUpload({ applicationId, onUploaded }: Props) {
 
   return (
     <div>
+      {lockedDocumentType ? (
+        <div style={lockedTypeBox}>
+          Document type: <strong>{lockedDocumentType}</strong>
+        </div>
+      ) : (
+        <>
+          <label htmlFor="doc-type" style={labelStyle}>Document type</label>
+          <select
+            id="doc-type"
+            value={documentType}
+            onChange={(e) => setDocumentType(e.target.value)}
+            disabled={uploading}
+            style={selectStyle}
+          >
+            <option value="">Select document type...</option>
+            {DOCUMENT_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </>
+      )}
+
       <label htmlFor="doc-upload" style={labelBtn}>
-        {uploading ? 'Uploading…' : 'Choose PDF to upload'}
+        {uploading ? 'Uploading...' : 'Choose PDF to upload'}
       </label>
       <input
         id="doc-upload"
@@ -65,6 +104,7 @@ export default function DocumentUpload({ applicationId, onUploaded }: Props) {
 
 const labelBtn: React.CSSProperties = {
   display: 'inline-block',
+  marginTop: 8,
   padding: '8px 16px',
   background: '#1d3c6e',
   color: '#fff',
@@ -72,6 +112,27 @@ const labelBtn: React.CSSProperties = {
   cursor: 'pointer',
   fontSize: 13,
   fontWeight: 600,
+};
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  marginTop: 4,
+  marginBottom: 6,
+  fontSize: 13,
+  fontWeight: 600,
+};
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  maxWidth: 320,
+  padding: '8px 10px',
+  border: '1px solid #d1d5db',
+  borderRadius: 4,
+  fontSize: 13,
+};
+const lockedTypeBox: React.CSSProperties = {
+  marginTop: 4,
+  marginBottom: 6,
+  fontSize: 12,
+  color: '#374151',
 };
 const errStyle: React.CSSProperties = {
   marginTop: 8,

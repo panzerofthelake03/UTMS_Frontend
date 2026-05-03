@@ -3,6 +3,7 @@ const STATUS_COLORS: Record<string, string> = {
   SUBMITTED: '#3b82f6',
   UNDER_OIDB_REVIEW: '#f59e0b',
   UNDER_YDYO_REVIEW: '#f59e0b',
+  WAITING_EXAM_RESULT: '#8b5cf6',
   UNDER_YGK_REVIEW: '#f59e0b',
   ACCEPTED: '#10b981',
   REJECTED: '#ef4444',

@@ -19,7 +19,7 @@ export default function StudentDashboard() {
 
   return (
     <div>
-      <h2>Welcome, {user?.firstName}!</h2>
+      <h2 style={pageHeading}>Welcome, {user?.firstName}!</h2>
       {loading ? (
         <Spinner />
       ) : (
@@ -57,5 +57,6 @@ const card: React.CSSProperties = {
 };
 const cardLabel: React.CSSProperties = { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' };
 const cardValue: React.CSSProperties = { fontSize: 28, fontWeight: 700, color: '#1d3c6e', marginTop: 4 };
+const pageHeading: React.CSSProperties = { color: '#1d3c6e' };
 const primaryBtn: React.CSSProperties = { background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, padding: '10px 20px', cursor: 'pointer', fontWeight: 600 };
 const secondaryBtn: React.CSSProperties = { background: '#fff', color: '#1d3c6e', border: '1px solid #1d3c6e', borderRadius: 4, padding: '10px 20px', cursor: 'pointer' };

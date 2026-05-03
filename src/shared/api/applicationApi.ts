@@ -24,7 +24,9 @@ export interface Document {
   id: number;
   applicationId: number;
   documentType: string;
-  originalFileName: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSizeBytes: number;
   scanStatus: string;
   createdAt: string;
 }
@@ -43,6 +45,8 @@ export const applicationApi = {
     axiosInstance.put<{ data: Application }>(`/api/applications/${id}`, data),
   submit: (id: number) =>
     axiosInstance.post<{ data: Application }>(`/api/applications/${id}/submit`),
+  deleteApplication: (id: number) =>
+    axiosInstance.delete(`/api/applications/${id}`),
   timeline: (id: number) =>
     axiosInstance.get<{ data: TimelineEntry[] }>(`/api/applications/${id}/timeline`),
   uploadDocument: (id: number, file: File, documentType: string) => {
@@ -55,4 +59,10 @@ export const applicationApi = {
   },
   listDocuments: (id: number) =>
     axiosInstance.get<{ data: Document[] }>(`/api/applications/${id}/documents`),
+  downloadDocument: (applicationId: number, documentId: number) =>
+    axiosInstance.get<Blob>(`/api/applications/${applicationId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    }),
+  deleteDocument: (applicationId: number, documentId: number) =>
+    axiosInstance.delete(`/api/applications/${applicationId}/documents/${documentId}`),
 };

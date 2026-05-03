@@ -14,7 +14,9 @@ export default function ApplicationDetailPage() {
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
 
   const appId = Number(id);
 
@@ -47,10 +49,57 @@ export default function ApplicationDetailPage() {
     }
   }
 
+  async function handleDeleteApplication() {
+    if (!app) return;
+    const ok = window.confirm('Delete this draft application? This cannot be undone.');
+    if (!ok) return;
+
+    setDeleting(true);
+    setSubmitError(null);
+    try {
+      await applicationApi.deleteApplication(app.id);
+      navigate('/student/applications');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setSubmitError(err.response?.data?.error?.message ?? 'Delete failed.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleDownload(doc: Document) {
+    setDocError(null);
+    try {
+      const res = await applicationApi.downloadDocument(appId, doc.id);
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: doc.mimeType }));
+      const link = window.document.createElement('a');
+      link.href = blobUrl;
+      link.download = doc.originalFilename;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setDocError(err.response?.data?.error?.message ?? 'Document download failed.');
+    }
+  }
+
+  async function handleDelete(documentId: number) {
+    setDocError(null);
+    try {
+      await applicationApi.deleteDocument(appId, documentId);
+      setDocs((prev) => prev.filter((d) => d.id !== documentId));
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setDocError(err.response?.data?.error?.message ?? 'Document delete failed.');
+    }
+  }
+
   if (loading) return <Spinner />;
   if (!app) return <div>Application not found.</div>;
 
   const canSubmit = app.status === 'DRAFT';
+  const canUploadDocuments = app.status === 'DRAFT' || app.status === 'WAITING_EXAM_RESULT';
+  const isWaitingExamResult = app.status === 'WAITING_EXAM_RESULT';
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -74,15 +123,20 @@ export default function ApplicationDetailPage() {
             <button onClick={handleSubmit} disabled={submitting} style={primaryBtn}>
               {submitting ? 'Submitting…' : 'Submit Application'}
             </button>
+            <button onClick={() => void handleDeleteApplication()} disabled={deleting} style={dangerBtn}>
+              {deleting ? 'Deleting…' : 'Delete Draft'}
+            </button>
           </div>
         )}
       </section>
 
       <section style={section}>
         <h3 style={sectionTitle}>Documents</h3>
-        {canSubmit && (
+        {docError && <div style={errBox}>{docError}</div>}
+        {canUploadDocuments && (
           <DocumentUpload
             applicationId={appId}
+            lockedDocumentType={isWaitingExamResult ? 'ENGLISH_PROFICIENCY_EXAM_RESULT' : undefined}
             onUploaded={(doc) => setDocs((prev) => [...prev, doc])}
           />
         )}
@@ -92,7 +146,7 @@ export default function ApplicationDetailPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 12 }}>
             <thead>
               <tr>
-                {['Type', 'File', 'Scan Status', 'Uploaded'].map((h) => (
+                {['Type', 'File', 'Scan Status', 'Uploaded', 'Actions'].map((h) => (
                   <th key={h} style={th}>{h}</th>
                 ))}
               </tr>
@@ -101,9 +155,15 @@ export default function ApplicationDetailPage() {
               {docs.map((d) => (
                 <tr key={d.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={td}>{d.documentType}</td>
-                  <td style={td}>{d.originalFileName}</td>
+                  <td style={td}>{d.originalFilename}</td>
                   <td style={td}><ScanBadge status={d.scanStatus} /></td>
                   <td style={td}>{new Date(d.createdAt).toLocaleDateString()}</td>
+                  <td style={td}>
+                    <button onClick={() => void handleDownload(d)} style={docBtn}>View PDF</button>
+                    {canSubmit && (
+                      <button onClick={() => void handleDelete(d.id)} style={docDangerBtn}>Delete</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -132,5 +192,8 @@ const dl: React.CSSProperties = { display: 'grid', gridTemplateColumns: '120px 1
 const th: React.CSSProperties = { textAlign: 'left', padding: '6px 10px', background: '#f9fafb', fontWeight: 600, fontSize: 11, color: '#6b7280', textTransform: 'uppercase' };
 const td: React.CSSProperties = { padding: '8px 10px' };
 const primaryBtn: React.CSSProperties = { padding: '9px 20px', background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' };
+const dangerBtn: React.CSSProperties = { marginLeft: 10, padding: '9px 20px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer' };
+const docBtn: React.CSSProperties = { marginRight: 8, padding: '5px 10px', background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
+const docDangerBtn: React.CSSProperties = { padding: '5px 10px', background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 };
 const errBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '7px 10px', fontSize: 13, color: '#b91c1c', marginBottom: 8 };
 const backBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#1d3c6e', cursor: 'pointer', fontSize: 13, padding: '0 0 12px', fontWeight: 600 };
