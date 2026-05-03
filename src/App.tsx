@@ -32,7 +32,7 @@ export default function App() {
             <Route path="/unauthorized" element={<div style={{ padding: '2rem', color: '#ef4444' }}>Access denied.</div>} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT', 'ROLE_ADMIN']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
               <Route element={<AppShell />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
                 <Route path="/student/applications" element={<ApplicationListPage />} />
