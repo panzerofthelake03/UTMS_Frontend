@@ -8,7 +8,18 @@ const axiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+function isAuthEndpoint(url?: string) {
+  if (!url) return false;
+  return url.includes('/api/auth/');
+}
+
 axiosInstance.interceptors.request.use((config) => {
+  // Never attach bearer tokens to auth endpoints (login/register/refresh).
+  // This avoids stale token 401s after DB resets from blocking new login/register.
+  if (isAuthEndpoint(config.url)) {
+    return config;
+  }
+
   const token = store.getState().auth.accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -28,6 +39,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const original = error.config;
+    if (isAuthEndpoint(original?.url)) {
+      return Promise.reject(error);
+    }
     if (error.response?.status !== 401 || original._retry) {
       // Show toast for 5xx server errors
       if (error.response?.status >= 500) {
