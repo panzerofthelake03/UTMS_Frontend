@@ -450,7 +450,7 @@ const styles = {
   logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
   title: { margin: '0 0 1rem', fontSize: 22, color: PRIMARY, textAlign: 'center' as const },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
-  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14, background: '#f3f4f6', boxSizing: 'border-box' as const, width: '100%' } as React.CSSProperties,
+  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14, background: '#f3f4f6', color: '#111827', boxSizing: 'border-box' as const, width: '100%' } as React.CSSProperties,
   fieldError: { fontSize: 12, color: '#ef4444' },
   serverError: { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '8px 10px', fontSize: 13, color: '#b91c1c' },
   button: { marginTop: 8, padding: '10px', background: PRIMARY, color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600, width: '100%' } as React.CSSProperties,

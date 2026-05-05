@@ -127,6 +127,7 @@ const s = {
     borderRadius: 6,
     fontSize: 14,
     background: '#f3f4f6',
+    color: '#111827',
     boxSizing: 'border-box',
     outline: 'none',
   } as React.CSSProperties,
