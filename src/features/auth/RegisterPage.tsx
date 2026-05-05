@@ -198,10 +198,56 @@ export default function RegisterPage() {
   const isVerifying = status === 'loading';
 
   return (
-    <div style={styles.page}>
-      <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
-        <img src={iyteLogo} alt="IYTE logo" style={styles.logo} />
-        <h1 style={styles.title}>Create Account</h1>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Left branding panel */}
+      <div style={{
+        flex: 1,
+        background: PRIMARY,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '2rem',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: -80, left: -100, width: 380, height: 380, border: '50px solid rgba(255,255,255,0.06)', borderRadius: 50, transform: 'rotate(20deg)' }} />
+          <div style={{ position: 'absolute', top: -50, left: -60, width: 280, height: 280, border: '35px solid rgba(255,255,255,0.04)', borderRadius: 36, transform: 'rotate(10deg)' }} />
+          <div style={{ position: 'absolute', bottom: -100, right: -80, width: 420, height: 420, border: '55px solid rgba(255,255,255,0.06)', borderRadius: 60, transform: 'rotate(-15deg)' }} />
+          <div style={{ position: 'absolute', bottom: -70, right: -50, width: 320, height: 320, border: '40px solid rgba(255,255,255,0.04)', borderRadius: 44, transform: 'rotate(-8deg)' }} />
+        </div>
+        <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
+          <img
+            src={iyteLogo}
+            alt="IYTE logo"
+            style={{ width: 100, height: 100, borderRadius: '50%', background: '#fff', padding: 8, objectFit: 'contain', marginBottom: 24 }}
+          />
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>
+            Izmir Institute of Technology
+          </h1>
+          <p style={{ margin: '10px 0 6px', fontSize: 14, opacity: 0.85 }}>
+            Undergraduate Transfer Management System
+          </p>
+          <p style={{ margin: 0, fontSize: 13, opacity: 0.6, letterSpacing: 3 }}>UTMS</p>
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div style={{
+        width: '50%',
+        minWidth: 440,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        background: '#fff',
+        padding: '2rem',
+        overflowY: 'auto',
+        maxHeight: '100vh',
+      }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
+        <h2 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 700, color: '#111827' }}>Create Account</h2>
+        <p style={{ margin: '0 0 18px', fontSize: 14, color: '#6b7280' }}>Fill in your details to register</p>
 
         {error && <div style={styles.serverError}>{error}</div>}
 
@@ -347,9 +393,10 @@ export default function RegisterPage() {
         </button>
 
         <p style={{ marginTop: 12, fontSize: 13, textAlign: 'center' }}>
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account? <Link to="/login" style={{ color: PRIMARY, fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
         </p>
       </form>
+      </div>
 
       {showVerifyPopup && (
         <div style={styles.overlay}>
@@ -390,31 +437,27 @@ export default function RegisterPage() {
   );
 }
 
+const PRIMARY = '#8B1A1A';
+
 const styles = {
-  page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' } as React.CSSProperties,
   card: {
-    background: '#fff',
-    padding: '2rem',
-    borderRadius: 8,
-    boxShadow: '0 2px 16px rgba(0,0,0,0.1)',
-    width: 440,
+    width: '100%',
+    maxWidth: 440,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 6,
-    maxHeight: '92vh',
-    overflowY: 'auto' as const,
   },
   logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
-  title: { margin: '0 0 1rem', fontSize: 22, color: '#1d3c6e', textAlign: 'center' as const },
+  title: { margin: '0 0 1rem', fontSize: 22, color: PRIMARY, textAlign: 'center' as const },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
-  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14 } as React.CSSProperties,
+  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14, background: '#f3f4f6', boxSizing: 'border-box' as const, width: '100%' } as React.CSSProperties,
   fieldError: { fontSize: 12, color: '#ef4444' },
   serverError: { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '8px 10px', fontSize: 13, color: '#b91c1c' },
-  button: { marginTop: 8, padding: '10px', background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
+  button: { marginTop: 8, padding: '10px', background: PRIMARY, color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600, width: '100%' } as React.CSSProperties,
   captchaBox: { marginTop: 8, padding: 10, borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb' } as React.CSSProperties,
   captchaHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 } as React.CSSProperties,
   captchaPrompt: { fontFamily: 'monospace', fontSize: 16, marginBottom: 8 },
-  linkButton: { background: 'transparent', color: '#1d3c6e', border: 'none', cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
+  linkButton: { background: 'transparent', color: PRIMARY, border: 'none', cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 } as React.CSSProperties,
   modal: { background: '#fff', width: 420, maxWidth: '92vw', borderRadius: 8, padding: 18, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' } as React.CSSProperties,
   modalText: { fontSize: 14, marginTop: 0 },

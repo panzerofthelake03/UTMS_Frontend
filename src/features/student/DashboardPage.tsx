@@ -1,11 +1,39 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { applicationApi, type Application } from '../../shared/api/applicationApi';
 import { useAppSelector } from '../../shared/hooks';
 import Spinner from '../../shared/components/Spinner';
 
+const FEATURE_CARDS = [
+  {
+    icon: '�',
+    title: 'My Profile',
+    subtitle: 'View and update your personal information',
+    to: '/student/profile',
+  },
+  {
+    icon: '📊',
+    title: 'Application Status Tracking',
+    subtitle: 'Track the progress of your transfer application',
+    to: '/student/applications',
+  },
+  {
+    icon: '🏅',
+    title: 'View Results',
+    subtitle: 'Check your evaluation results and decisions',
+    to: '/student/profile',
+  },
+  {
+    icon: '🎧',
+    title: 'Contact & Support',
+    subtitle: 'Reach out to the admissions office for help',
+    to: '/student/dashboard',
+  },
+];
+
 export default function StudentDashboard() {
   const user = useAppSelector((s) => s.auth.user);
+  const navigate = useNavigate();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -16,47 +44,82 @@ export default function StudentDashboard() {
   }, []);
 
   const latest = apps[apps.length - 1];
+  const statusLabel = latest ? latest.status.replace(/_/g, ' ') : 'No Application';
 
   return (
-    <div>
-      <h2 style={pageHeading}>Welcome, {user?.firstName}!</h2>
+    <div style={{ padding: '2.5rem 2rem' }}>
+      {/* Welcome heading */}
+      <h1 style={{ margin: '0 0 8px', fontSize: 32, fontWeight: 700, color: '#111827' }}>
+        Welcome, {user?.firstName} {user?.lastName}!
+      </h1>
+
+      {/* Status badge */}
       {loading ? (
         <Spinner />
       ) : (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 16 }}>
-          <div style={card}>
-            <div style={cardLabel}>Total Applications</div>
-            <div style={cardValue}>{apps.length}</div>
-          </div>
-          {latest && (
-            <div style={card}>
-              <div style={cardLabel}>Latest Status</div>
-              <div style={cardValue}>{latest.status.replace(/_/g, ' ')}</div>
-            </div>
-          )}
+        <div style={{
+          display: 'inline-block',
+          background: '#FEF3C7',
+          color: '#92400E',
+          padding: '5px 14px',
+          borderRadius: 20,
+          fontSize: 13,
+          fontWeight: 600,
+          marginBottom: 36,
+        }}>
+          Current Status: {statusLabel}
         </div>
       )}
-      <div style={{ marginTop: 24 }}>
-        <Link to="/student/applications/new">
-          <button style={primaryBtn}>+ New Application</button>
-        </Link>
-        <Link to="/student/applications" style={{ marginLeft: 12 }}>
-          <button style={secondaryBtn}>View All Applications</button>
-        </Link>
+
+      {/* Feature cards grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 20,
+      }}>
+        {FEATURE_CARDS.map((card) => (
+          <div
+            key={card.title}
+            onClick={() => navigate(card.to)}
+            style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 10,
+              padding: '1.5rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 16,
+              transition: 'box-shadow 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+          >
+            <div style={{
+              width: 48,
+              height: 48,
+              background: '#f3f4f6',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 22,
+              flexShrink: 0,
+            }}>
+              {card.icon}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, color: '#111827', fontSize: 15, marginBottom: 4 }}>
+                {card.title}
+              </div>
+              <div style={{ fontSize: 13, color: '#6b7280' }}>
+                {card.subtitle}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-const card: React.CSSProperties = {
-  background: '#eff6ff',
-  border: '1px solid #bfdbfe',
-  borderRadius: 8,
-  padding: '1rem 1.5rem',
-  minWidth: 160,
-};
-const cardLabel: React.CSSProperties = { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' };
-const cardValue: React.CSSProperties = { fontSize: 28, fontWeight: 700, color: '#1d3c6e', marginTop: 4 };
-const pageHeading: React.CSSProperties = { color: '#1d3c6e' };
-const primaryBtn: React.CSSProperties = { background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, padding: '10px 20px', cursor: 'pointer', fontWeight: 600 };
-const secondaryBtn: React.CSSProperties = { background: '#fff', color: '#1d3c6e', border: '1px solid #1d3c6e', borderRadius: 4, padding: '10px 20px', cursor: 'pointer' };
