@@ -1,7 +1,21 @@
 import axiosInstance from './axiosInstance';
 
 export interface LoginRequest { email: string; password: string }
-export interface RegisterRequest { email: string; password: string; firstName: string; lastName: string }
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  dateOfBirth: string;
+  identityDocumentType: 'TC_ID' | 'PASSPORT';
+  tcIdentityNumber?: string;
+  identitySerialNo?: string;
+  passportNumber?: string;
+  passportExpirationDate?: string;
+  currentProgram: string;
+  currentUniversity: string;
+}
 
 export interface AuthResponse {
   accessToken: string;
