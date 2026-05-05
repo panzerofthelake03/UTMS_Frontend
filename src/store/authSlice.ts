@@ -49,14 +49,32 @@ const initialState: AuthState = {
   error: null,
 };
 
-export const login = createAsyncThunk('auth/login', async (credentials: LoginRequest) => {
-  const { data } = await authApi.login(credentials);
-  return data.data;
+export const login = createAsyncThunk('auth/login', async (credentials: LoginRequest, { rejectWithValue }) => {
+  try {
+    const { data } = await authApi.login(credentials);
+    return data.data;
+  } catch (err: any) {
+    if (err.response?.data?.error?.message) {
+      return rejectWithValue(err.response.data.error.message);
+    } else if (err.response?.data?.message) {
+      return rejectWithValue(err.response.data.message);
+    }
+    return rejectWithValue(err.message);
+  }
 });
 
-export const register = createAsyncThunk('auth/register', async (req: RegisterRequest) => {
-  const { data } = await authApi.register(req);
-  return data.data;
+export const register = createAsyncThunk('auth/register', async (req: RegisterRequest, { rejectWithValue }) => {
+  try {
+    const { data } = await authApi.register(req);
+    return data.data;
+  } catch (err: any) {
+    if (err.response?.data?.error?.message) {
+      return rejectWithValue(err.response.data.error.message);
+    } else if (err.response?.data?.message) {
+      return rejectWithValue(err.response.data.message);
+    }
+    return rejectWithValue(err.message);
+  }
 });
 
 const authSlice = createSlice({
@@ -105,9 +123,9 @@ const authSlice = createSlice({
         }),
       );
     };
-    const handleRejected = (state: AuthState, action: { error: { message?: string } }) => {
+    const handleRejected = (state: AuthState, action: any) => {
       state.status = 'failed';
-      state.error = action.error.message ?? 'Authentication failed';
+      state.error = action.payload || action.error.message || 'Authentication failed';
     };
 
     builder

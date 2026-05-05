@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import type { UserRole } from '../../store/authSlice';
 import iyteLogo from '../../assets/iyte-logo.png';
+import heroBg from '../../assets/hero.png';
 
 interface FormValues { email: string; password: string }
 
@@ -23,12 +24,18 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { status, error, user } = useAppSelector((s) => s.auth);
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>();
 
   useEffect(() => {
     if (user) navigate(roleHome(user.role), { replace: true });
     return () => { dispatch(clearError()); };
   }, [user, navigate, dispatch]);
+
+  useEffect(() => {
+    if (error) {
+      setValue('password', '');
+    }
+  }, [error, setValue]);
 
   function onSubmit(values: FormValues) {
     dispatch(login(values));
@@ -36,38 +43,59 @@ export default function LoginPage() {
 
   return (
     <div style={styles.page}>
-      <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
-        <img src={iyteLogo} alt="IYTE logo" style={styles.logo} />
-        <h1 style={styles.title}>UTMS Login</h1>
+      {/* Left Panel */}
+      <div style={styles.leftPanel}>
+        <div style={styles.overlay}>
+          <img src={iyteLogo} alt="IYTE logo" style={styles.largeLogo} />
+          <h2 style={styles.instTitle}>Izmir Institute of Technology</h2>
+          <p style={styles.sysName}>Undergraduate Transfer Management System</p>
+          <p style={styles.sysAbbr}>UTMS</p>
+        </div>
+      </div>
 
-        {error && <div style={styles.serverError}>{error}</div>}
+      {/* Right Panel */}
+      <div style={styles.rightPanel}>
+        <div style={styles.formContainer}>
+          <h1 style={styles.title}>Login</h1>
+          <p style={styles.subtitle}>Enter your credentials to access your account</p>
 
-        <label style={styles.label} htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          style={styles.input}
-          {...register('email', { required: 'Email is required' })}
-        />
-        {errors.email && <span style={styles.fieldError}>{errors.email.message}</span>}
+          <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
+            {error && <div style={styles.serverError}>{error}</div>}
 
-        <label style={styles.label} htmlFor="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          style={styles.input}
-          {...register('password', { required: 'Password is required' })}
-        />
-        {errors.password && <span style={styles.fieldError}>{errors.password.message}</span>}
+            <label style={styles.label} htmlFor="email">Email or Username</label>
+            <input
+              id="email"
+              type="text"
+              placeholder="Enter your email or username"
+              style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
+              {...register('email', { required: 'Email or Username is required' })}
+            />
+            {errors.email && <span style={styles.fieldError}>{errors.email.message}</span>}
 
-        <button type="submit" disabled={status === 'loading'} style={styles.button}>
-          {status === 'loading' ? 'Signing in…' : 'Sign in'}
-        </button>
+            <label style={styles.label} htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              style={{ ...styles.input, ...(errors.password ? styles.inputError : {}) }}
+              {...register('password', { required: 'Password is required' })}
+            />
+            {errors.password && <span style={styles.fieldError}>{errors.password.message}</span>}
 
-        <p style={{ marginTop: 12, fontSize: 13, textAlign: 'center' }}>
-          No account? <Link to="/register">Register</Link>
-        </p>
-      </form>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4, marginBottom: 12 }}>
+              <Link to="/forgot-password" style={styles.forgotLink}>Forgot Password?</Link>
+            </div>
+
+            <button type="submit" disabled={status === 'loading'} style={styles.button}>
+              {status === 'loading' ? 'Logging in…' : 'Login'}
+            </button>
+
+            <p style={styles.registerText}>
+              Don't have an account? <Link to="/register" style={styles.registerLink}>Register</Link>
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
@@ -76,48 +104,135 @@ const styles = {
   page: {
     minHeight: '100vh',
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#f3f4f6',
-  } as React.CSSProperties,
-  card: {
     background: '#fff',
-    padding: '2rem',
-    borderRadius: 8,
-    boxShadow: '0 2px 16px rgba(0,0,0,0.1)',
-    width: 360,
+    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
+  } as React.CSSProperties,
+  leftPanel: {
+    flex: 1,
+    backgroundImage: `url(${heroBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    position: 'relative' as const,
+    minHeight: '100vh',
+    display: 'flex',
+  },
+  overlay: {
+    position: 'absolute' as const,
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(140, 21, 21, 0.85)', // Dark red overlay
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#fff',
+    textAlign: 'center' as const,
+    padding: '2rem'
   },
-  logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
-  title: { margin: '0 0 1rem', fontSize: 22, color: '#1d3c6e', textAlign: 'center' as const },
-  label: { fontSize: 13, fontWeight: 600, color: '#374151' },
+  largeLogo: {
+    width: 140,
+    height: 140,
+    objectFit: 'contain' as const,
+    marginBottom: '2rem',
+  },
+  instTitle: {
+    fontSize: '2.5rem',
+    fontWeight: 600,
+    margin: '0 0 1rem 0',
+    color: '#ffffff',
+  },
+  sysName: {
+    fontSize: '1.2rem',
+    margin: '0 0 0.5rem 0',
+    fontWeight: 300,
+    color: '#ffffff',
+  },
+  sysAbbr: {
+    fontSize: '1rem',
+    margin: 0,
+    fontWeight: 300,
+    color: '#ffffff',
+  },
+  rightPanel: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 400,
+    padding: '2rem',
+  },
+  title: {
+    margin: '0 0 0.5rem',
+    fontSize: '2rem',
+    color: '#333',
+    fontWeight: 500
+  },
+  subtitle: {
+    color: '#666',
+    fontSize: '0.9rem',
+    marginBottom: '2rem',
+    marginTop: 0
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.8rem',
+  },
+  label: {
+    fontSize: '0.9rem',
+    fontWeight: 500,
+    color: '#444',
+  },
   input: {
-    padding: '8px 10px',
-    border: '1px solid #d1d5db',
-    borderRadius: 4,
-    fontSize: 14,
+    padding: '12px 14px',
+    border: '1px solid #ddd',
+    borderRadius: 6,
+    fontSize: '1rem',
     outline: 'none',
+    transition: 'border-color 0.2s',
   } as React.CSSProperties,
-  fieldError: { fontSize: 12, color: '#ef4444' },
+  inputError: {
+    borderColor: '#ef4444'
+  },
+  fieldError: { fontSize: '0.8rem', color: '#ef4444', marginTop: '-0.5rem' },
   serverError: {
     background: '#fef2f2',
     border: '1px solid #fca5a5',
-    borderRadius: 4,
-    padding: '8px 10px',
-    fontSize: 13,
+    borderRadius: 6,
+    padding: '10px',
+    fontSize: '0.9rem',
     color: '#b91c1c',
+    marginBottom: '1rem',
+  },
+  forgotLink: {
+    fontSize: '0.85rem',
+    color: '#666',
+    textDecoration: 'none',
   },
   button: {
-    marginTop: 8,
-    padding: '10px',
-    background: '#1d3c6e',
+    marginTop: '0.5rem',
+    padding: '12px',
+    background: '#8c1515', // Matches the red theme
     color: '#fff',
     border: 'none',
-    borderRadius: 4,
-    fontSize: 15,
+    borderRadius: 6,
+    fontSize: '1rem',
     cursor: 'pointer',
-    fontWeight: 600,
+    fontWeight: 500,
+    transition: 'background-color 0.2s',
   } as React.CSSProperties,
+  registerText: {
+    marginTop: '1.5rem',
+    fontSize: '0.9rem',
+    textAlign: 'center' as const,
+    color: '#666'
+  },
+  registerLink: {
+    color: '#8c1515',
+    fontWeight: 600,
+    textDecoration: 'none'
+  }
 };

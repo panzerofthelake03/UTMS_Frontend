@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { logout } from '../../store/authSlice';
 import { notificationApi } from '../api/notificationApi';
@@ -14,7 +14,7 @@ export default function AppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => {});
+    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => { });
   }, []);
 
   function handleLogout() {
@@ -25,170 +25,190 @@ export default function AppShell() {
   const navLinks = buildNavLinks(user?.role ?? '');
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header */}
-      <header
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
+      {/* Sidebar */}
+      <nav
         style={{
-          background: '#1d3c6e',
+          width: 260,
+          background: '#8c1515',
           color: '#fff',
           display: 'flex',
-          alignItems: 'center',
-          padding: '0 1.5rem',
-          height: 56,
-          gap: 16,
+          flexDirection: 'column',
+          flexShrink: 0,
+          padding: '2rem 1rem',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
         }}
       >
-        <Link to="/" style={brandLink}>
-          <img src={iyteLogo} alt="IYTE logo" style={brandLogo} />
-          <span>UTMS</span>
-        </Link>
-        <span style={{ flex: 1 }} />
-        {user && (
-          <span style={{ fontSize: 13 }}>
-            {user.firstName} {user.lastName}
-          </span>
-        )}
-        {/* Notification bell */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowNotifications((v) => !v)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#fff',
-              fontSize: 22,
-              cursor: 'pointer',
-              position: 'relative',
-            }}
-            aria-label="Notifications"
-          >
-            🔔
-            {unread > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -4,
-                  background: '#ef4444',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  fontSize: 10,
-                  width: 16,
-                  height: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 700,
-                }}
-              >
-                {unread}
-              </span>
-            )}
-          </button>
-          {showNotifications && (
-            <NotificationPanel
-              onClose={() => setShowNotifications(false)}
-              onRead={() => setUnread((n) => Math.max(0, n - 1))}
-            />
-          )}
+        {/* Logo Area */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
+          <div style={{ background: '#fff', borderRadius: '50%', padding: '4px', marginBottom: '1rem', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={iyteLogo} alt="IYTE logo" style={{ width: 70, height: 70, objectFit: 'contain' }} />
+          </div>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            background: 'none',
-            border: '1px solid rgba(255,255,255,0.4)',
-            color: '#fff',
-            borderRadius: 4,
-            padding: '4px 12px',
-            cursor: 'pointer',
-            fontSize: 13,
-          }}
-        >
-          Logout
-        </button>
-      </header>
 
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* Sidebar */}
-        <nav
-          style={{
-            width: 220,
-            background: '#f3f4f6',
-            borderRight: '1px solid #e5e7eb',
-            padding: '1rem 0',
-            flexShrink: 0,
-          }}
-        >
+        {/* Navigation Links */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
           {navLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
+              end
               style={({ isActive }) => ({
-                display: 'block',
-                padding: '10px 1.5rem',
-                color: isActive ? '#1d3c6e' : '#374151',
-                background: isActive ? '#dbeafe' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px 1rem',
+                color: '#fff',
+                background: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+                borderRadius: '8px',
                 fontWeight: isActive ? 600 : 400,
                 textDecoration: 'none',
-                fontSize: 14,
-                borderLeft: isActive ? '3px solid #1d3c6e' : '3px solid transparent',
+                fontSize: '0.95rem',
+                transition: 'background-color 0.2s',
+                gap: '12px',
               })}
             >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.2rem' }}>
+                {link.icon || '•'}
+              </div>
               {link.label}
             </NavLink>
           ))}
-        </nav>
+        </div>
 
-        {/* Main content */}
-        <main style={{ flex: 1, padding: '1.5rem', background: '#fff' }}>
+        {/* Bottom Actions */}
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+          {/* Notification Bell inside Sidebar optionally */}
+          <button
+            onClick={() => setShowNotifications((v) => !v)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              padding: '12px 1rem',
+              background: showNotifications ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem', position: 'relative' }}>
+              🔔
+              {unread > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -4, background: '#ef4444', color: '#fff',
+                  borderRadius: '50%', fontSize: 9, width: 14, height: 14, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                }}>
+                  {unread}
+                </span>
+              )}
+            </div>
+            Notifications
+          </button>
+
+          <NavLink
+            to="/settings"
+            end
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              padding: '12px 1rem',
+              color: '#fff',
+              background: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+              borderRadius: '8px',
+              textDecoration: 'none',
+              fontSize: '0.95rem',
+              gap: '12px',
+            })}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem' }}>
+              ⚙️
+            </div>
+            Settings
+          </NavLink>
+
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              padding: '12px 1rem',
+              background: 'transparent',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              textAlign: 'left',
+              marginTop: '1rem',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem' }}>
+              [→
+            </div>
+            Logout
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <main style={{ flex: 1, position: 'relative', background: '#f9f9fa', display: 'flex', flexDirection: 'column' }}>
+        {/* User Info Header Placeholder (if needed, otherwise empty) */}
+        <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Notification Panel Positioning */}
+            {showNotifications && (
+              <div style={{ position: 'absolute', top: '70px', right: '1.5rem', zIndex: 50 }}>
+                <NotificationPanel
+                  onClose={() => setShowNotifications(false)}
+                  onRead={() => setUnread((n) => Math.max(0, n - 1))}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ flex: 1, padding: '0 2rem 2rem 2rem', overflowY: 'auto' }}>
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
 
-function buildNavLinks(role: string): { to: string; label: string }[] {
+function buildNavLinks(role: string): { to: string; label: string; icon?: string }[] {
   switch (role) {
     case 'ROLE_STUDENT':
       return [
-        { to: '/student/dashboard', label: 'Dashboard' },
-        { to: '/student/applications', label: 'My Applications' },
+        { to: '/student/dashboard', label: 'Dashboard', icon: '🏠' },
+        { to: '/student/applications/new', label: 'Document Upload', icon: '📄' },
+        { to: '/student/applications', label: 'Application Status Tracking', icon: '📈' },
+        { to: '/student/results', label: 'View Results', icon: '🏅' },
+        { to: '/support', label: 'Contact & Support', icon: '🎧' },
       ];
     case 'ROLE_OIDB':
-      return [{ to: '/admin/oidb/applications', label: 'Applications Inbox' }];
+      return [{ to: '/admin/oidb/applications', label: 'Applications Inbox', icon: '📥' }];
     case 'ROLE_YDYO':
-      return [{ to: '/admin/ydyo/applications', label: 'English Review Queue' }];
+      return [{ to: '/admin/ydyo/applications', label: 'English Review Queue', icon: '📝' }];
     case 'ROLE_YGK':
-      return [{ to: '/admin/ygk/applications', label: 'Evaluation Queue' }];
+      return [{ to: '/admin/ygk/applications', label: 'Evaluation Queue', icon: '⚖️' }];
     case 'ROLE_INTIBAK':
-      return [{ to: '/admin/intibak/applications', label: 'Intibak Queue' }];
+      return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '🔗' }];
     case 'ROLE_ADMIN':
       return [
-        { to: '/admin/oidb/applications', label: 'OIDB Inbox' },
-        { to: '/admin/ydyo/applications', label: 'YDYO Queue' },
-        { to: '/admin/ygk/applications', label: 'YGK Queue' },
-        { to: '/admin/intibak/applications', label: 'Intibak Queue' },
+        { to: '/admin/oidb/applications', label: 'OIDB Inbox', icon: '📥' },
+        { to: '/admin/ydyo/applications', label: 'YDYO Queue', icon: '📝' },
+        { to: '/admin/ygk/applications', label: 'YGK Queue', icon: '⚖️' },
+        { to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '🔗' },
       ];
     default:
       return [];
   }
 }
-
-const brandLink: React.CSSProperties = {
-  color: '#fff',
-  fontWeight: 700,
-  fontSize: 18,
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 10,
-};
-
-const brandLogo: React.CSSProperties = {
-  width: 30,
-  height: 30,
-  objectFit: 'contain',
-  borderRadius: '50%',
-  background: '#fff',
-};
