@@ -52,6 +52,7 @@ export default function AppShell() {
             <NavLink
               key={link.to}
               to={link.to}
+              end
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -111,6 +112,7 @@ export default function AppShell() {
 
           <NavLink
             to="/settings"
+            end
             style={({ isActive }) => ({
               display: 'flex',
               alignItems: 'center',
