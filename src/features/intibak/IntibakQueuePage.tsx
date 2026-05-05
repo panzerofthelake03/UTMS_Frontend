@@ -9,13 +9,6 @@ export default function IntibakQueuePage() {
   const [apps, setApps] = useState<AdminApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     adminApi.intibakQueueList()
@@ -28,41 +21,39 @@ export default function IntibakQueuePage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0, color: '#1d3c6e', fontSize: isMobile ? '1.5rem' : '2rem' }}>Intibak Queue</h2>
-      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              {['Student', 'Email', 'Term', 'Status', 'Submitted', ''].map((h) => (
-                <th key={h} style={thStyle}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {apps.map((app) => (
-              <tr key={app.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={tdStyle}>{app.studentFirstName} {app.studentLastName}</td>
-                <td style={tdStyle}>{app.studentEmail}</td>
-                <td style={tdStyle}>{app.term}</td>
-                <td style={tdStyle}>
-                  <ApplicationStatusBadge status={app.status} />
-                </td>
-                <td style={tdStyle}>
-                  {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}
-                </td>
-                <td style={tdStyle}>
-                  <button
-                    style={actionBtn}
-                    onClick={() => navigate(`/admin/intibak/applications/${app.id}`)}
-                  >
-                    Review
-                  </button>
-                </td>
-              </tr>
+      <h2 style={{ marginTop: 0, color: '#1d3c6e' }}>Intibak Queue</h2>
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            {['Student', 'Email', 'Term', 'Status', 'Submitted', ''].map((h) => (
+              <th key={h} style={thStyle}>{h}</th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {apps.map((app) => (
+            <tr key={app.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <td style={tdStyle}>{app.studentFirstName} {app.studentLastName}</td>
+              <td style={tdStyle}>{app.studentEmail}</td>
+              <td style={tdStyle}>{app.term}</td>
+              <td style={tdStyle}>
+                <ApplicationStatusBadge status={app.status} />
+              </td>
+              <td style={tdStyle}>
+                {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}
+              </td>
+              <td style={tdStyle}>
+                <button
+                  style={actionBtn}
+                  onClick={() => navigate(`/admin/intibak/applications/${app.id}`)}
+                >
+                  Review
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

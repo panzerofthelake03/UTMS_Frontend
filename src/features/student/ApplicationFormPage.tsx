@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { applicationApi } from '../../shared/api/applicationApi';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface FormValues { term: string; applicationNote: string }
 
@@ -11,13 +11,6 @@ export default function ApplicationFormPage() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>();
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   async function onSubmit(values: FormValues) {
     setServerError(null);
@@ -31,8 +24,8 @@ export default function ApplicationFormPage() {
   }
 
   return (
-    <div style={{ maxWidth: 540, width: '100%', padding: isMobile ? '0' : '0' }}>
-      <h2 style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>New Application</h2>
+    <div style={{ maxWidth: 540 }}>
+      <h2>New Application</h2>
       {serverError && <div style={errorBox}>{serverError}</div>}
       <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <label htmlFor="term" style={labelStyle}>Term</label>
