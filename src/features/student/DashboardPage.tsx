@@ -36,10 +36,18 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     applicationApi.list()
       .then((r) => setApps(r.data.data))
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
