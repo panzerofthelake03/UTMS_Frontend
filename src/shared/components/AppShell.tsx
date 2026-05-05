@@ -153,6 +153,7 @@ function buildNavLinks(role: string): { to: string; label: string }[] {
     case 'ROLE_STUDENT':
       return [
         { to: '/student/dashboard', label: 'Dashboard' },
+        { to: '/student/profile', label: 'My Profile' },
         { to: '/student/applications', label: 'My Applications' },
       ];
     case 'ROLE_OIDB':

@@ -7,6 +7,7 @@ import AppShell from './shared/components/AppShell';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
 import StudentDashboard from './features/student/DashboardPage';
+import StudentProfilePage from './features/student/ProfilePage';
 import ApplicationListPage from './features/student/ApplicationListPage';
 import ApplicationFormPage from './features/student/ApplicationFormPage';
 import ApplicationDetailPage from './features/student/ApplicationDetailPage';
@@ -35,6 +36,7 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={['ROLE_STUDENT']} />}>
               <Route element={<AppShell />}>
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
+                <Route path="/student/profile" element={<StudentProfilePage />} />
                 <Route path="/student/applications" element={<ApplicationListPage />} />
                 <Route path="/student/applications/new" element={<ApplicationFormPage />} />
                 <Route path="/student/applications/:id" element={<ApplicationDetailPage />} />
