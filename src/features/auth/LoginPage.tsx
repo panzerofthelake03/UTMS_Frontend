@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
@@ -25,6 +25,13 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { status, error, user } = useAppSelector((s) => s.auth);
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (user) navigate(roleHome(user.role), { replace: true });
@@ -42,21 +49,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, flexDirection: isMobile ? 'column' : 'row' }}>
       {/* Left Panel */}
-      <div style={styles.leftPanel}>
-        <div style={styles.overlay}>
-          <img src={iyteLogo} alt="IYTE logo" style={styles.largeLogo} />
-          <h2 style={styles.instTitle}>Izmir Institute of Technology</h2>
-          <p style={styles.sysName}>Undergraduate Transfer Management System</p>
-          <p style={styles.sysAbbr}>UTMS</p>
+      {!isMobile && (
+        <div style={styles.leftPanel}>
+          <div style={styles.overlay}>
+            <img src={iyteLogo} alt="IYTE logo" style={styles.largeLogo} />
+            <h2 style={styles.instTitle}>Izmir Institute of Technology</h2>
+            <p style={styles.sysName}>Undergraduate Transfer Management System</p>
+            <p style={styles.sysAbbr}>UTMS</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right Panel */}
-      <div style={styles.rightPanel}>
-        <div style={styles.formContainer}>
-          <h1 style={styles.title}>Login</h1>
+      <div style={{ ...styles.rightPanel, padding: isMobile ? '1rem' : '2rem' }}>
+        <div style={{ ...styles.formContainer, padding: isMobile ? '1rem' : '2rem' }}>
+          {isMobile && (
+            <div style={styles.mobileLogo}>
+              <img src={iyteLogo} alt="IYTE logo" style={{ width: 60, height: 60, marginBottom: '1rem' }} />
+            </div>
+          )}
+          <h1 style={{ ...styles.title, fontSize: isMobile ? '1.5rem' : '2rem' }}>Login</h1>
           <p style={styles.subtitle}>Enter your credentials to access your account</p>
 
           <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
@@ -134,6 +148,12 @@ const styles = {
     objectFit: 'contain' as const,
     marginBottom: '2rem',
   },
+  mobileLogo: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: '1rem',
+  },
   instTitle: {
     fontSize: '2.5rem',
     fontWeight: 600,
@@ -162,7 +182,6 @@ const styles = {
   formContainer: {
     width: '100%',
     maxWidth: 400,
-    padding: '2rem',
   },
   title: {
     margin: '0 0 0.5rem',

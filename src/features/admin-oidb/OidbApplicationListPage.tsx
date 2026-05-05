@@ -9,6 +9,13 @@ export default function OidbApplicationListPage() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<AdminApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     adminApi.oidbList().then((r) => setApps(r.data.data)).finally(() => setLoading(false));
@@ -18,28 +25,30 @@ export default function OidbApplicationListPage() {
 
   return (
     <div>
-      <h2>Applications Inbox (OIDB)</h2>
+      <h2 style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>Applications Inbox (OIDB)</h2>
       {apps.length === 0 ? (
         <EmptyState message="No applications in the OIDB queue." />
       ) : (
-        <table style={tableStyle}>
-          <thead>
-            <tr>{['Student', 'Term', 'Status', 'Submitted', ''].map((h) => <th key={h} style={th}>{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {apps.map((a) => (
-              <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={td}>{a.studentFirstName} {a.studentLastName}<br /><span style={{ fontSize: 11, color: '#9ca3af' }}>{a.studentEmail}</span></td>
-                <td style={td}>{a.term}</td>
-                <td style={td}><ApplicationStatusBadge status={a.status} /></td>
-                <td style={td}>{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '—'}</td>
-                <td style={td}>
-                  <button onClick={() => navigate(`/admin/oidb/applications/${a.id}`)} style={actionBtn}>Review</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={tableStyle}>
+            <thead>
+              <tr>{['Student', 'Term', 'Status', 'Submitted', ''].map((h) => <th key={h} style={th}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {apps.map((a) => (
+                <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <td style={td}>{a.studentFirstName} {a.studentLastName}<br /><span style={{ fontSize: 11, color: '#9ca3af' }}>{a.studentEmail}</span></td>
+                  <td style={td}>{a.term}</td>
+                  <td style={td}><ApplicationStatusBadge status={a.status} /></td>
+                  <td style={td}>{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '—'}</td>
+                  <td style={td}>
+                    <button onClick={() => navigate(`/admin/oidb/applications/${a.id}`)} style={actionBtn}>Review</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
