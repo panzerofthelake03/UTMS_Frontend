@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
@@ -67,7 +67,7 @@ export default function LoginPage() {
               id="email"
               type="text"
               placeholder="Enter your email or username"
-              style={{...styles.input, ...(errors.email ? styles.inputError : {})}}
+              style={{ ...styles.input, ...(errors.email ? styles.inputError : {}) }}
               {...register('email', { required: 'Email or Username is required' })}
             />
             {errors.email && <span style={styles.fieldError}>{errors.email.message}</span>}
@@ -77,7 +77,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               placeholder="Enter your password"
-              style={{...styles.input, ...(errors.password ? styles.inputError : {})}}
+              style={{ ...styles.input, ...(errors.password ? styles.inputError : {}) }}
               {...register('password', { required: 'Password is required' })}
             />
             {errors.password && <span style={styles.fieldError}>{errors.password.message}</span>}
@@ -113,6 +113,8 @@ const styles = {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     position: 'relative' as const,
+    minHeight: '100vh',
+    display: 'flex',
   },
   overlay: {
     position: 'absolute' as const,
@@ -136,16 +138,19 @@ const styles = {
     fontSize: '2.5rem',
     fontWeight: 600,
     margin: '0 0 1rem 0',
+    color: '#ffffff',
   },
   sysName: {
     fontSize: '1.2rem',
     margin: '0 0 0.5rem 0',
     fontWeight: 300,
+    color: '#ffffff',
   },
   sysAbbr: {
     fontSize: '1rem',
     margin: 0,
     fontWeight: 300,
+    color: '#ffffff',
   },
   rightPanel: {
     flex: 1,
@@ -159,11 +164,11 @@ const styles = {
     maxWidth: 400,
     padding: '2rem',
   },
-  title: { 
-    margin: '0 0 0.5rem', 
-    fontSize: '2rem', 
+  title: {
+    margin: '0 0 0.5rem',
+    fontSize: '2rem',
     color: '#333',
-    fontWeight: 500 
+    fontWeight: 500
   },
   subtitle: {
     color: '#666',
@@ -176,9 +181,9 @@ const styles = {
     flexDirection: 'column' as const,
     gap: '0.8rem',
   },
-  label: { 
-    fontSize: '0.9rem', 
-    fontWeight: 500, 
+  label: {
+    fontSize: '0.9rem',
+    fontWeight: 500,
     color: '#444',
   },
   input: {
@@ -219,9 +224,9 @@ const styles = {
     fontWeight: 500,
     transition: 'background-color 0.2s',
   } as React.CSSProperties,
-  registerText: { 
-    marginTop: '1.5rem', 
-    fontSize: '0.9rem', 
+  registerText: {
+    marginTop: '1.5rem',
+    fontSize: '0.9rem',
     textAlign: 'center' as const,
     color: '#666'
   },

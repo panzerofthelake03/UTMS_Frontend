@@ -12,7 +12,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     applicationApi.list()
       .then((r) => setApps(r.data.data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,15 +28,25 @@ export default function StudentDashboard() {
           Current Status: {appStatus}
         </div>
       </div>
-      
+
       {loading ? (
         <Spinner />
       ) : (
         <div style={styles.grid}>
           <Link to="/student/applications/new" style={styles.card}>
             <div style={styles.iconContainer}>
-              <span style={styles.icon}>📄</span> {/* Simplified icon placeholder */}
+              <span style={styles.icon}>📄</span>
             </div>
+            {/* Added red visual badge for Document Upload based on Use Case */}
+            <span style={{
+              position: 'absolute',
+              top: '1.25rem',
+              right: '1.25rem',
+              width: '12px',
+              height: '12px',
+              backgroundColor: '#ef4444',
+              borderRadius: '50%'
+            }}></span>
             <h3 style={styles.cardTitle}>Document Upload</h3>
             <p style={styles.cardDesc}>Upload required documents</p>
           </Link>
@@ -73,12 +83,13 @@ export default function StudentDashboard() {
 const styles = {
   container: {
     padding: '2rem',
-    maxWidth: '1200px',
+    width: '100%',
     margin: '0 auto',
     fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif'
   },
   header: {
     marginBottom: '3rem',
+    textAlign: 'center' as const,
   },
   greeting: {
     fontSize: '2rem',
@@ -93,10 +104,10 @@ const styles = {
     backgroundColor: '#fffdf0',
     border: '1px solid #fde047',
     color: '#a16207',
-    padding: '6px 12px',
+    padding: '6px 20px',
     borderRadius: '20px',
     fontSize: '0.9rem',
-    fontWeight: 500
+    fontWeight: 600
   },
   statusDot: {
     width: '8px',
@@ -106,37 +117,49 @@ const styles = {
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-    gap: '2rem'
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: '2rem',
+    maxWidth: '900px',
+    margin: '0 auto'
   },
   card: {
     backgroundColor: '#fff',
     border: '1px solid #eaeaea',
     borderRadius: '12px',
-    padding: '2rem',
+    padding: '3rem 2rem',
     textDecoration: 'none',
     color: 'inherit',
     boxShadow: '0 4px 6px rgba(0,0,0,0.02)',
     transition: 'transform 0.2s, box-shadow 0.2s',
     display: 'flex',
     flexDirection: 'column' as const,
+    alignItems: 'center',
+    textAlign: 'center' as const,
+    position: 'relative' as const,
   },
   iconContainer: {
     marginBottom: '1rem',
     color: '#8c1515',
+    backgroundColor: '#eff1f5',
+    borderRadius: '8px',
+    width: '50px',
+    height: '50px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
-    fontSize: '2rem'
+    fontSize: '1.5rem',
   },
   cardTitle: {
-    margin: '0 0 0.5rem 0',
+    
     fontSize: '1.25rem',
     fontWeight: 600,
-    color: '#333'
+    margin: '0 0 0.5rem 0',
   },
   cardDesc: {
-    margin: 0,
+    fontSize: '0.9rem',
     color: '#666',
-    fontSize: '0.95rem'
+    margin: 0,
   }
-};
+}

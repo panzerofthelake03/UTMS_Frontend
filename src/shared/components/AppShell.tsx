@@ -14,7 +14,7 @@ export default function AppShell() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
-    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => {});
+    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => { });
   }, []);
 
   function handleLogout() {
@@ -94,21 +94,21 @@ export default function AppShell() {
               gap: '12px',
             }}
           >
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem', position: 'relative' }}>
-                🔔
-                {unread > 0 && (
-                  <span style={{
-                    position: 'absolute', top: -6, right: -4, background: '#ef4444', color: '#fff',
-                    borderRadius: '50%', fontSize: 9, width: 14, height: 14, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
-                  }}>
-                    {unread}
-                  </span>
-                )}
-             </div>
-             Notifications
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem', position: 'relative' }}>
+              🔔
+              {unread > 0 && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -4, background: '#ef4444', color: '#fff',
+                  borderRadius: '50%', fontSize: 9, width: 14, height: 14, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
+                }}>
+                  {unread}
+                </span>
+              )}
+            </div>
+            Notifications
           </button>
-          
+
           <NavLink
             to="/settings"
             style={({ isActive }) => ({
