@@ -1,8 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { register as registerThunk, clearError } from '../../store/authSlice';
+import {
+  clearError,
+  clearRegistrationFlow,
+  fetchCaptcha,
+  registerCancel,
+  registerStart as registerStartThunk,
+  registerVerify as registerVerifyThunk,
+} from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
+import type { RootState } from '../../store';
 import iyteLogo from '../../assets/iyte-logo.png';
 import type { RegisterRequest } from '../../shared/api/authApi';
 
@@ -21,12 +29,15 @@ interface FormValues {
   passportExpirationDate?: string;
   currentProgram: string;
   currentUniversity: string;
+  captchaAnswer: string;
 }
 
 export default function RegisterPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { status, error, user } = useAppSelector((s) => s.auth);
+  const { status, registerStatus, captchaStatus, error, user, registration, captcha, captchaError } = useAppSelector(
+    (s: RootState) => s.auth,
+  );
   const {
     register,
     watch,
@@ -38,16 +49,43 @@ export default function RegisterPage() {
     defaultValues: {
       nationality: 'TURKISH',
       identityDocumentType: 'TC_ID',
+      captchaAnswer: '',
     },
   });
 
   const documentType = watch('identityDocumentType');
   const passwordValue = watch('password');
+  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+
+  // Keep a ref to the latest registration so the unmount cleanup always sees current values
+  // without adding registration to the dependency array (which would fire cleanup on every session change)
+  const registrationRef = useRef(registration);
+  registrationRef.current = registration;
+
+  useEffect(() => {
+    dispatch(fetchCaptcha());
+  }, [dispatch]);
 
   useEffect(() => {
     if (user) navigate('/student/dashboard', { replace: true });
-    return () => { dispatch(clearError()); };
-  }, [user, navigate, dispatch]);
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (registration.verificationSessionId) {
+      setShowVerifyPopup(true);
+    }
+  }, [registration.verificationSessionId]);
+
+  useEffect(() => {
+    return () => {
+      if (registrationRef.current.verificationSessionId) {
+        dispatch(registerCancel(registrationRef.current.verificationSessionId));
+      }
+      dispatch(clearError());
+      dispatch(clearRegistrationFlow());
+    };
+  }, [dispatch]); // Only depends on dispatch — runs cleanup on unmount only
 
   function parseDdMmYyyy(value: string): string | null {
     const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
@@ -62,11 +100,44 @@ export default function RegisterPage() {
     return iso;
   }
 
-  function onSubmit(values: FormValues) {
-    clearErrors(['dateOfBirth', 'passportExpirationDate', 'identityDocumentType', 'confirmPassword']);
+  async function closeVerifyPopup() {
+    const sessionId = registration.verificationSessionId;
+    setShowVerifyPopup(false);
+    setVerificationCode('');
+    if (sessionId) {
+      await dispatch(registerCancel(sessionId));
+    }
+    dispatch(clearRegistrationFlow());
+    dispatch(fetchCaptcha());
+  }
+
+  async function verifyCode() {
+    const sessionId = registration.verificationSessionId;
+    if (!sessionId) {
+      dispatch(fetchCaptcha());
+      return;
+    }
+
+    if (!/^\d{6}$/.test(verificationCode.trim())) {
+      return;
+    }
+
+    await dispatch(registerVerifyThunk({
+      verificationSessionId: sessionId,
+      code: verificationCode.trim(),
+    }));
+  }
+
+  async function onSubmit(values: FormValues) {
+    clearErrors(['dateOfBirth', 'passportExpirationDate', 'identityDocumentType', 'confirmPassword', 'captchaAnswer']);
 
     if (values.password !== values.confirmPassword) {
       setError('confirmPassword', { type: 'manual', message: 'Passwords do not match' });
+      return;
+    }
+
+    if (!captcha.captchaId) {
+      setError('captchaAnswer', { type: 'manual', message: 'CAPTCHA is not ready yet. Refresh it and try again.' });
       return;
     }
 
@@ -110,14 +181,73 @@ export default function RegisterPage() {
       payload.passportExpirationDate = passportExpiryIso;
     }
 
-    dispatch(registerThunk(payload));
+    const action = await dispatch(registerStartThunk({
+      ...payload,
+      captchaId: captcha.captchaId,
+      captchaAnswer: values.captchaAnswer.trim(),
+    }));
+
+    if (registerStartThunk.fulfilled.match(action)) {
+      setShowVerifyPopup(true);
+    } else {
+      dispatch(fetchCaptcha());
+    }
   }
 
+  const isSubmitting = registerStatus === 'loading';
+  const isVerifying = status === 'loading';
+
   return (
-    <div style={styles.page}>
-      <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
-        <img src={iyteLogo} alt="IYTE logo" style={styles.logo} />
-        <h1 style={styles.title}>Create Account</h1>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Left branding panel */}
+      <div style={{
+        flex: 1,
+        background: PRIMARY,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '2rem',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: -80, left: -100, width: 380, height: 380, border: '50px solid rgba(255,255,255,0.06)', borderRadius: 50, transform: 'rotate(20deg)' }} />
+          <div style={{ position: 'absolute', top: -50, left: -60, width: 280, height: 280, border: '35px solid rgba(255,255,255,0.04)', borderRadius: 36, transform: 'rotate(10deg)' }} />
+          <div style={{ position: 'absolute', bottom: -100, right: -80, width: 420, height: 420, border: '55px solid rgba(255,255,255,0.06)', borderRadius: 60, transform: 'rotate(-15deg)' }} />
+          <div style={{ position: 'absolute', bottom: -70, right: -50, width: 320, height: 320, border: '40px solid rgba(255,255,255,0.04)', borderRadius: 44, transform: 'rotate(-8deg)' }} />
+        </div>
+        <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
+          <img
+            src={iyteLogo}
+            alt="IYTE logo"
+            style={{ width: 100, height: 100, borderRadius: '50%', background: '#fff', padding: 8, objectFit: 'contain', marginBottom: 24 }}
+          />
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>
+            Izmir Institute of Technology
+          </h1>
+          <p style={{ margin: '10px 0 6px', fontSize: 14, opacity: 0.85 }}>
+            Undergraduate Transfer Management System
+          </p>
+          <p style={{ margin: 0, fontSize: 13, opacity: 0.6, letterSpacing: 3 }}>UTMS</p>
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div style={{
+        width: '50%',
+        minWidth: 440,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        background: '#fff',
+        padding: '2rem',
+        overflowY: 'auto',
+        maxHeight: '100vh',
+      }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
+        <h2 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 700, color: '#111827' }}>Create Account</h2>
+        <p style={{ margin: '0 0 18px', fontSize: 14, color: '#6b7280' }}>Fill in your details to register</p>
 
         {error && <div style={styles.serverError}>{error}</div>}
 
@@ -227,37 +357,112 @@ export default function RegisterPage() {
         />
         {errors.confirmPassword && <span style={styles.fieldError}>{errors.confirmPassword.message}</span>}
 
-        <button type="submit" disabled={status === 'loading'} style={styles.button}>
-          {status === 'loading' ? 'Registering…' : 'Register'}
+        <div style={styles.captchaBox}>
+          <div style={styles.captchaHeader}>
+            <strong>CAPTCHA</strong>
+            <button
+              type="button"
+              onClick={() => dispatch(fetchCaptcha())}
+              style={styles.linkButton}
+              disabled={captchaStatus === 'loading'}
+            >
+              {captchaStatus === 'loading' ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          {captchaError ? (
+            <div style={{ ...styles.serverError, marginBottom: 6 }}>
+              {captchaError}{' '}
+              <button type="button" onClick={() => dispatch(fetchCaptcha())} style={styles.linkButton}>
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div style={styles.captchaPrompt}>{captcha.prompt ?? 'Loading challenge...'}</div>
+          )}
+          <input
+            id="captchaAnswer"
+            placeholder="Enter answer"
+            style={styles.input}
+            {...register('captchaAnswer', { required: 'Required' })}
+          />
+          {errors.captchaAnswer && <span style={styles.fieldError}>{errors.captchaAnswer.message}</span>}
+        </div>
+
+        <button type="submit" disabled={isSubmitting || captchaStatus === 'loading'} style={styles.button}>
+          {isSubmitting ? 'Sending code…' : 'Register'}
         </button>
 
         <p style={{ marginTop: 12, fontSize: 13, textAlign: 'center' }}>
-          Already have an account? <Link to="/login">Sign in</Link>
+          Already have an account? <Link to="/login" style={{ color: PRIMARY, fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
         </p>
       </form>
+      </div>
+
+      {showVerifyPopup && (
+        <div style={styles.overlay}>
+          <div style={styles.modal}>
+            <h2 style={{ marginTop: 0, marginBottom: 8 }}>Verify Your Email</h2>
+            <p style={styles.modalText}>
+              Enter the 6-digit code sent to <strong>{registration.maskedEmail}</strong>.
+            </p>
+            {registration.devVerificationCode && (
+              <p style={styles.devHint}>Dev only code: {registration.devVerificationCode}</p>
+            )}
+            <input
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              placeholder="6-digit code"
+              style={styles.input}
+            />
+            <div style={styles.modalActions}>
+              <button type="button" style={styles.cancelButton} onClick={closeVerifyPopup}>
+                Close
+              </button>
+              <button
+                type="button"
+                style={styles.button}
+                onClick={verifyCode}
+                disabled={isVerifying || verificationCode.length !== 6}
+              >
+                {isVerifying ? 'Verifying…' : 'Verify & Register'}
+              </button>
+            </div>
+            <p style={styles.smallHelp}>
+              Closing this popup invalidates the current code. You must press Register again to receive a new code.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+const PRIMARY = '#8B1A1A';
+
 const styles = {
-  page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' } as React.CSSProperties,
   card: {
-    background: '#fff',
-    padding: '2rem',
-    borderRadius: 8,
-    boxShadow: '0 2px 16px rgba(0,0,0,0.1)',
-    width: 420,
+    width: '100%',
+    maxWidth: 440,
     display: 'flex',
     flexDirection: 'column' as const,
     gap: 6,
-    maxHeight: '92vh',
-    overflowY: 'auto' as const,
   },
   logo: { width: 88, height: 88, objectFit: 'contain', marginBottom: 8, alignSelf: 'center' } as React.CSSProperties,
-  title: { margin: '0 0 1rem', fontSize: 22, color: '#1d3c6e', textAlign: 'center' as const },
+  title: { margin: '0 0 1rem', fontSize: 22, color: PRIMARY, textAlign: 'center' as const },
   label: { fontSize: 13, fontWeight: 600, color: '#374151' },
-  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14 } as React.CSSProperties,
+  input: { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14, background: '#f3f4f6', boxSizing: 'border-box' as const, width: '100%' } as React.CSSProperties,
   fieldError: { fontSize: 12, color: '#ef4444' },
   serverError: { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '8px 10px', fontSize: 13, color: '#b91c1c' },
-  button: { marginTop: 8, padding: '10px', background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
+  button: { marginTop: 8, padding: '10px', background: PRIMARY, color: '#fff', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600, width: '100%' } as React.CSSProperties,
+  captchaBox: { marginTop: 8, padding: 10, borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb' } as React.CSSProperties,
+  captchaHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 } as React.CSSProperties,
+  captchaPrompt: { fontFamily: 'monospace', fontSize: 16, marginBottom: 8 },
+  linkButton: { background: 'transparent', color: PRIMARY, border: 'none', cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
+  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 } as React.CSSProperties,
+  modal: { background: '#fff', width: 420, maxWidth: '92vw', borderRadius: 8, padding: 18, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' } as React.CSSProperties,
+  modalText: { fontSize: 14, marginTop: 0 },
+  modalActions: { display: 'flex', gap: 8, marginTop: 10 } as React.CSSProperties,
+  cancelButton: { marginTop: 8, padding: '10px', background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
+  smallHelp: { fontSize: 12, color: '#6b7280', marginTop: 8 },
+  devHint: { fontSize: 12, color: '#0f766e', background: '#ecfeff', border: '1px solid #99f6e4', padding: '6px 8px', borderRadius: 6 },
 };

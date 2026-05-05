@@ -1,5 +1,13 @@
+import { AxiosError } from 'axios';
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { authApi, type LoginRequest, type RegisterRequest } from '../shared/api/authApi';
+import {
+  authApi,
+  type CaptchaChallengeResponse,
+  type LoginRequest,
+  type RegisterStartRequest,
+  type RegisterStartResponse,
+  type RegisterVerifyRequest,
+} from '../shared/api/authApi';
 
 export type UserRole =
   | 'ROLE_STUDENT'
@@ -16,12 +24,30 @@ interface AuthUser {
   role: UserRole;
 }
 
-interface AuthState {
+interface RegistrationState {
+  verificationSessionId: string | null;
+  maskedEmail: string | null;
+  expiresInSeconds: number | null;
+  devVerificationCode: string | null;
+}
+
+interface CaptchaState {
+  captchaId: string | null;
+  prompt: string | null;
+  expiresInSeconds: number | null;
+}
+
+export interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   user: AuthUser | null;
   status: 'idle' | 'loading' | 'failed';
+  registerStatus: 'idle' | 'loading' | 'failed';
+  captchaStatus: 'idle' | 'loading' | 'failed';
+  registration: RegistrationState;
+  captcha: CaptchaState;
   error: string | null;
+  captchaError: string | null;
 }
 
 function parseRole(roles: string[]): UserRole {
@@ -39,6 +65,11 @@ function loadPersistedAuth(): Partial<AuthState> {
   return {};
 }
 
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  const axiosError = error as AxiosError<{ error?: { message?: string } }>;
+  return axiosError.response?.data?.error?.message ?? fallback;
+}
+
 const persisted = loadPersistedAuth();
 
 const initialState: AuthState = {
@@ -46,36 +77,76 @@ const initialState: AuthState = {
   refreshToken: persisted.refreshToken ?? null,
   user: persisted.user ?? null,
   status: 'idle',
+  registerStatus: 'idle',
+  captchaStatus: 'idle',
+  registration: {
+    verificationSessionId: null,
+    maskedEmail: null,
+    expiresInSeconds: null,
+    devVerificationCode: null,
+  },
+  captcha: {
+    captchaId: null,
+    prompt: null,
+    expiresInSeconds: null,
+  },
   error: null,
+  captchaError: null,
 };
 
 export const login = createAsyncThunk('auth/login', async (credentials: LoginRequest, { rejectWithValue }) => {
   try {
     const { data } = await authApi.login(credentials);
     return data.data;
-  } catch (err: any) {
-    if (err.response?.data?.error?.message) {
-      return rejectWithValue(err.response.data.error.message);
-    } else if (err.response?.data?.message) {
-      return rejectWithValue(err.response.data.message);
-    }
-    return rejectWithValue(err.message);
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, 'Authentication failed'));
   }
 });
 
-export const register = createAsyncThunk('auth/register', async (req: RegisterRequest, { rejectWithValue }) => {
+export const fetchCaptcha = createAsyncThunk('auth/fetchCaptcha', async (_, { rejectWithValue }) => {
   try {
-    const { data } = await authApi.register(req);
+    const { data } = await authApi.captchaChallenge();
     return data.data;
-  } catch (err: any) {
-    if (err.response?.data?.error?.message) {
-      return rejectWithValue(err.response.data.error.message);
-    } else if (err.response?.data?.message) {
-      return rejectWithValue(err.response.data.message);
-    }
-    return rejectWithValue(err.message);
+  } catch (error) {
+    return rejectWithValue(getApiErrorMessage(error, 'Failed to load CAPTCHA'));
   }
 });
+
+export const registerStart = createAsyncThunk(
+  'auth/registerStart',
+  async (req: RegisterStartRequest, { rejectWithValue }) => {
+    try {
+      const { data } = await authApi.registerStart(req);
+      return data.data;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to start registration'));
+    }
+  },
+);
+
+export const registerVerify = createAsyncThunk(
+  'auth/registerVerify',
+  async (req: RegisterVerifyRequest, { rejectWithValue }) => {
+    try {
+      const { data } = await authApi.registerVerify(req);
+      return data.data;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, 'Verification failed'));
+    }
+  },
+);
+
+export const registerCancel = createAsyncThunk(
+  'auth/registerCancel',
+  async (verificationSessionId: string, { rejectWithValue }) => {
+    try {
+      await authApi.registerCancel({ verificationSessionId });
+      return verificationSessionId;
+    } catch (error) {
+      return rejectWithValue(getApiErrorMessage(error, 'Failed to cancel verification'));
+    }
+  },
+);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -97,13 +168,22 @@ const authSlice = createSlice({
     clearError(state) {
       state.error = null;
     },
+    clearRegistrationFlow(state) {
+      state.registration = {
+        verificationSessionId: null,
+        maskedEmail: null,
+        expiresInSeconds: null,
+        devVerificationCode: null,
+      };
+      state.registerStatus = 'idle';
+    },
   },
   extraReducers: (builder) => {
     const handlePending = (state: AuthState) => {
       state.status = 'loading';
       state.error = null;
     };
-    const handleFulfilled = (state: AuthState, action: ReturnType<typeof login.fulfilled>) => {
+    const handleFulfilled = (state: AuthState, action: PayloadAction<{ accessToken: string; refreshToken: string; email: string; firstName: string; lastName: string; roles: string[] }>) => {
       const payload = action.payload;
       state.accessToken = payload.accessToken;
       state.refreshToken = payload.refreshToken;
@@ -123,20 +203,73 @@ const authSlice = createSlice({
         }),
       );
     };
-    const handleRejected = (state: AuthState, action: any) => {
+    const handleRejected = (state: AuthState, action: { payload?: unknown; error?: { message?: string } }) => {
       state.status = 'failed';
-      state.error = action.payload || action.error.message || 'Authentication failed';
+      state.error = (action.payload as string | undefined) ?? action.error?.message ?? 'Authentication failed';
     };
 
     builder
       .addCase(login.pending, handlePending)
       .addCase(login.fulfilled, handleFulfilled)
       .addCase(login.rejected, handleRejected)
-      .addCase(register.pending, handlePending)
-      .addCase(register.fulfilled, handleFulfilled)
-      .addCase(register.rejected, handleRejected);
+      .addCase(registerVerify.pending, handlePending)
+      .addCase(registerVerify.fulfilled, (state, action) => {
+        handleFulfilled(state, action);
+        state.registration = {
+          verificationSessionId: null,
+          maskedEmail: null,
+          expiresInSeconds: null,
+          devVerificationCode: null,
+        };
+      })
+      .addCase(registerVerify.rejected, handleRejected)
+      .addCase(fetchCaptcha.pending, (state) => {
+        state.captchaStatus = 'loading';
+        state.captchaError = null;
+      })
+      .addCase(fetchCaptcha.fulfilled, (state, action: PayloadAction<CaptchaChallengeResponse>) => {
+        state.captchaStatus = 'idle';
+        state.captchaError = null;
+        state.captcha = {
+          captchaId: action.payload.captchaId,
+          prompt: action.payload.prompt,
+          expiresInSeconds: action.payload.expiresInSeconds,
+        };
+      })
+      .addCase(fetchCaptcha.rejected, (state, action) => {
+        state.captchaStatus = 'failed';
+        state.captchaError = (action.payload as string | undefined) ?? 'Failed to load CAPTCHA';
+      })
+      .addCase(registerStart.pending, (state) => {
+        state.registerStatus = 'loading';
+        state.error = null;
+      })
+      .addCase(registerStart.fulfilled, (state, action: PayloadAction<RegisterStartResponse>) => {
+        state.registerStatus = 'idle';
+        state.registration = {
+          verificationSessionId: action.payload.verificationSessionId,
+          maskedEmail: action.payload.maskedEmail,
+          expiresInSeconds: action.payload.expiresInSeconds,
+          devVerificationCode: action.payload.devVerificationCode,
+        };
+      })
+      .addCase(registerStart.rejected, (state, action) => {
+        state.registerStatus = 'failed';
+        state.error = (action.payload as string | undefined) ?? 'Failed to start registration';
+      })
+      .addCase(registerCancel.fulfilled, (state) => {
+        state.registration = {
+          verificationSessionId: null,
+          maskedEmail: null,
+          expiresInSeconds: null,
+          devVerificationCode: null,
+        };
+      })
+      .addCase(registerCancel.rejected, (state, action) => {
+        state.error = (action.payload as string | undefined) ?? state.error;
+      });
   },
 });
 
-export const { logout, setTokens, clearError } = authSlice.actions;
+export const { logout, setTokens, clearError, clearRegistrationFlow } = authSlice.actions;
 export default authSlice.reducer;

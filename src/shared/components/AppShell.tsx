@@ -6,6 +6,8 @@ import { notificationApi } from '../api/notificationApi';
 import NotificationPanel from '../../features/notifications/NotificationPanel';
 import iyteLogo from '../../assets/iyte-logo.png';
 
+const PRIMARY = '#8B1A1A';
+
 export default function AppShell() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -37,115 +39,34 @@ export default function AppShell() {
   const navLinks = buildNavLinks(user?.role ?? '');
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif' }}>
-      {/* Backdrop for mobile sidebar */}
-      {isMobile && sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 999,
-          }}
-        />
-      )}
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: 240,
+        background: PRIMARY,
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        position: 'relative',
+      }}>
+        {/* Logo */}
+        <div style={{
+          padding: '1.25rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
+        }}>
+          <img
+            src={iyteLogo}
+            alt="IYTE logo"
+            style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', padding: 3, objectFit: 'contain', flexShrink: 0 }}
+          />
+        </div>
 
-      {/* Sidebar - only show on desktop or when open on mobile */}
-      {(!isMobile || sidebarOpen) && (
-        <nav
-          style={{
-            width: 260,
-            background: '#8c1515',
-            color: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            padding: '2rem 1rem',
-            boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
-            position: isMobile ? 'fixed' : 'static',
-            top: 0,
-            left: 0,
-            height: '100vh',
-            zIndex: 1000,
-            overflowY: 'auto',
-          }}
-        >
-          {/* Logo Area */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-            <div style={{ background: '#fff', borderRadius: '50%', padding: '4px', marginBottom: '1rem', width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={iyteLogo} alt="IYTE logo" style={{ width: 70, height: 70, objectFit: 'contain' }} />
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            {navLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end
-                onClick={() => isMobile && setSidebarOpen(false)}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '12px 1rem',
-                  color: '#fff',
-                  background: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                  borderRadius: '8px',
-                  fontWeight: isActive ? 600 : 400,
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                  transition: 'background-color 0.2s',
-                  gap: '12px',
-                })}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.2rem' }}>
-                  {link.icon || '•'}
-                </div>
-                {link.label}
-              </NavLink>
-            ))}
-          </div>
-
-          {/* Bottom Actions */}
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-            {/* Notification Bell inside Sidebar optionally */}
-            <button
-              onClick={() => setShowNotifications((v) => !v)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                padding: '12px 1rem',
-                background: showNotifications ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                textAlign: 'left',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem', position: 'relative' }}>
-                🔔
-                {unread > 0 && (
-                  <span style={{
-                    position: 'absolute', top: -6, right: -4, background: '#ef4444', color: '#fff',
-                    borderRadius: '50%', fontSize: 9, width: 14, height: 14, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'
-                  }}>
-                    {unread}
-                  </span>
-                )}
-              </div>
-              Notifications
-            </button>
-
+        {/* Nav links */}
+        <nav style={{ flex: 1, paddingTop: 8 }}>
+          {navLinks.map((link) => (
             <NavLink
               to="/settings"
               end
@@ -153,19 +74,19 @@ export default function AppShell() {
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
-                padding: '12px 1rem',
+                gap: 12,
+                padding: '11px 18px',
                 color: '#fff',
-                background: isActive ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                borderRadius: '8px',
+                background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+                fontWeight: isActive ? 600 : 400,
                 textDecoration: 'none',
-                fontSize: '0.95rem',
-                gap: '12px',
+                fontSize: 14,
+                borderLeft: isActive ? '3px solid #fff' : '3px solid transparent',
+                transition: 'background 0.15s',
               })}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem' }}>
-                ⚙️
-              </div>
-              Settings
+              <span style={{ fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 }}>{link.icon}</span>
+              <span>{link.label}</span>
             </NavLink>
 
             <button
@@ -242,23 +163,79 @@ export default function AppShell() {
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: isMobile ? '1rem' : '0 2rem 2rem 2rem', overflowY: 'auto' }}>
-          <Outlet />
+        {/* Bottom actions */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingBottom: 8 }}>
+          {/* Notifications */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowNotifications((v) => !v)}
+              style={bottomBtn}
+            >
+              <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>🔔</span>
+              <span style={{ flex: 1 }}>Notifications</span>
+              {unread > 0 && (
+                <span style={{
+                  background: '#ef4444', color: '#fff', borderRadius: '50%',
+                  fontSize: 10, width: 18, height: 18, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontWeight: 700,
+                }}>
+                  {unread}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 200 }}>
+                <NotificationPanel
+                  onClose={() => setShowNotifications(false)}
+                  onRead={() => setUnread((n) => Math.max(0, n - 1))}
+                />
+              </div>
+            )}
+          </div>
+
+          <button style={bottomBtn}>
+            <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>⚙️</span>
+            <span>Settings</span>
+          </button>
+
+          <button onClick={handleLogout} style={bottomBtn}>
+            <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>→</span>
+            <span>Logout</span>
+          </button>
         </div>
+      </aside>
+
+      {/* Main content */}
+      <main style={{ flex: 1, background: '#f5f5f5', overflow: 'auto' }}>
+        <Outlet />
       </main>
     </div>
   );
 }
 
-function buildNavLinks(role: string): { to: string; label: string; icon?: string }[] {
+const bottomBtn: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  width: '100%',
+  padding: '11px 18px',
+  background: 'transparent',
+  border: 'none',
+  color: '#fff',
+  fontSize: 14,
+  cursor: 'pointer',
+  textAlign: 'left',
+};
+
+function buildNavLinks(role: string): { to: string; label: string; icon: string }[] {
   switch (role) {
     case 'ROLE_STUDENT':
       return [
-        { to: '/student/dashboard', label: 'Dashboard', icon: '🏠' },
+        { to: '/student/dashboard', label: 'Dashboard', icon: '⊞' },
+        { to: '/student/profile', label: 'My Profile', icon: '👤' },
+        { to: '/student/applications', label: 'Application Status Tracking', icon: '📊' },
         { to: '/student/applications/new', label: 'Document Upload', icon: '📄' },
-        { to: '/student/applications', label: 'Application Status Tracking', icon: '📈' },
-        { to: '/student/results', label: 'View Results', icon: '🏅' },
-        { to: '/support', label: 'Contact & Support', icon: '🎧' },
+        { to: '/student/dashboard', label: 'Contact & Support', icon: '🎧' },
       ];
     case 'ROLE_OIDB':
       return [{ to: '/admin/oidb/applications', label: 'Applications Inbox', icon: '📥' }];
@@ -267,15 +244,17 @@ function buildNavLinks(role: string): { to: string; label: string; icon?: string
     case 'ROLE_YGK':
       return [{ to: '/admin/ygk/applications', label: 'Evaluation Queue', icon: '⚖️' }];
     case 'ROLE_INTIBAK':
-      return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '🔗' }];
+      return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' }];
     case 'ROLE_ADMIN':
       return [
         { to: '/admin/oidb/applications', label: 'OIDB Inbox', icon: '📥' },
         { to: '/admin/ydyo/applications', label: 'YDYO Queue', icon: '📝' },
         { to: '/admin/ygk/applications', label: 'YGK Queue', icon: '⚖️' },
-        { to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '🔗' },
+        { to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' },
       ];
     default:
       return [];
   }
 }
+
+
