@@ -10,13 +10,6 @@ export default function ApplicationListPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     applicationApi.list()
@@ -45,52 +38,50 @@ export default function ApplicationListPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: '0.5rem' }}>
-        <h2 style={{ ...pageHeading, fontSize: isMobile ? '1.5rem' : '2rem' }}>My Applications</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={pageHeading}>My Applications</h2>
         <Link to="/student/applications/new">
-          <button style={{ ...primaryBtn, fontSize: isMobile ? '0.85rem' : '1rem', padding: isMobile ? '6px 12px' : '8px 16px' }}>+ New Application</button>
+          <button style={primaryBtn}>+ New Application</button>
         </Link>
       </div>
       {serverError && <div style={errBox}>{serverError}</div>}
       {apps.length === 0 ? (
         <EmptyState message="You have no applications yet. Start one now!" />
       ) : (
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                {['#', 'Term', 'Status', 'Submitted', 'Created', ''].map((h) => (
-                  <th key={h} style={th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {apps.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={td}>{a.id}</td>
-                  <td style={td}>{a.term}</td>
-                  <td style={td}><ApplicationStatusBadge status={a.status} /></td>
-                  <td style={td}>{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '-'}</td>
-                  <td style={td}>{new Date(a.createdAt).toLocaleDateString()}</td>
-                  <td style={td}>
-                    <Link to={`/student/applications/${a.id}`} style={{ color: '#1d3c6e', fontSize: 13 }}>
-                      View
-                    </Link>
-                    {a.status === 'DRAFT' && (
-                      <button
-                        onClick={() => void handleDelete(a.id)}
-                        disabled={deletingId === a.id}
-                        style={deleteBtn}
-                      >
-                        {deletingId === a.id ? 'Deleting...' : 'Delete'}
-                      </button>
-                    )}
-                  </td>
-                </tr>
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              {['#', 'Term', 'Status', 'Submitted', 'Created', ''].map((h) => (
+                <th key={h} style={th}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {apps.map((a) => (
+              <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <td style={td}>{a.id}</td>
+                <td style={td}>{a.term}</td>
+                <td style={td}><ApplicationStatusBadge status={a.status} /></td>
+                <td style={td}>{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '-'}</td>
+                <td style={td}>{new Date(a.createdAt).toLocaleDateString()}</td>
+                <td style={td}>
+                  <Link to={`/student/applications/${a.id}`} style={{ color: '#1d3c6e', fontSize: 13 }}>
+                    View
+                  </Link>
+                  {a.status === 'DRAFT' && (
+                    <button
+                      onClick={() => void handleDelete(a.id)}
+                      disabled={deletingId === a.id}
+                      style={deleteBtn}
+                    >
+                      {deletingId === a.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

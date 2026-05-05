@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import type { UserRole } from '../../store/authSlice';
 import iyteLogo from '../../assets/iyte-logo.png';
-import heroBg from '../../assets/hero.png';
 
 interface FormValues { email: string; password: string }
 
@@ -26,25 +25,12 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { status, error, user } = useAppSelector((s) => s.auth);
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormValues>();
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
 
   useEffect(() => {
     if (user) navigate(roleHome(user.role), { replace: true });
     return () => { dispatch(clearError()); };
   }, [user, navigate, dispatch]);
-
-  useEffect(() => {
-    if (error) {
-      setValue('password', '');
-    }
-  }, [error, setValue]);
 
   function onSubmit(values: FormValues) {
     dispatch(login(values));
@@ -143,7 +129,6 @@ const s = {
     background: '#f3f4f6',
     boxSizing: 'border-box',
     outline: 'none',
-    transition: 'border-color 0.2s',
   } as React.CSSProperties,
   fieldError: { display: 'block', fontSize: 12, color: '#ef4444', marginTop: 4 } as React.CSSProperties,
   serverError: {
@@ -154,16 +139,5 @@ const s = {
     width: '100%', padding: '12px', background: PRIMARY, color: '#fff',
     border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: 'pointer',
   } as React.CSSProperties,
-  registerText: {
-    marginTop: '1.5rem',
-    fontSize: '0.9rem',
-    textAlign: 'center' as const,
-    color: '#666'
-  },
-  registerLink: {
-    color: '#8c1515',
-    fontWeight: 600,
-    textDecoration: 'none'
-  }
 };
 

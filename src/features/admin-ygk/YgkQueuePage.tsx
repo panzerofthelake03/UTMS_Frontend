@@ -9,13 +9,6 @@ export default function YgkQueuePage() {
   const navigate = useNavigate();
   const [apps, setApps] = useState<AdminApplication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     adminApi.ygkList().then((r) => setApps(r.data.data)).finally(() => setLoading(false));
@@ -25,30 +18,28 @@ export default function YgkQueuePage() {
 
   return (
     <div>
-      <h2 style={{ fontSize: isMobile ? '1.5rem' : '2rem' }}>Evaluation Queue (YGK)</h2>
+      <h2>Evaluation Queue (YGK)</h2>
       {apps.length === 0 ? (
         <EmptyState message="No applications pending YGK evaluation." />
       ) : (
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={tableStyle}>
-            <thead>
-              <tr>{['Student', 'Term', 'GPA', 'Status', ''].map((h) => <th key={h} style={th}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {apps.map((a) => (
-                <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={td}>{a.studentFirstName} {a.studentLastName}</td>
-                  <td style={td}>{a.term}</td>
-                  <td style={td}>{a.gpa ?? '—'}</td>
-                  <td style={td}><ApplicationStatusBadge status={a.status} /></td>
-                  <td style={td}>
-                    <button onClick={() => navigate(`/admin/ygk/applications/${a.id}`)} style={actionBtn}>Evaluate</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <table style={tableStyle}>
+          <thead>
+            <tr>{['Student', 'Term', 'GPA', 'Status', ''].map((h) => <th key={h} style={th}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {apps.map((a) => (
+              <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <td style={td}>{a.studentFirstName} {a.studentLastName}</td>
+                <td style={td}>{a.term}</td>
+                <td style={td}>{a.gpa ?? '—'}</td>
+                <td style={td}><ApplicationStatusBadge status={a.status} /></td>
+                <td style={td}>
+                  <button onClick={() => navigate(`/admin/ygk/applications/${a.id}`)} style={actionBtn}>Evaluate</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

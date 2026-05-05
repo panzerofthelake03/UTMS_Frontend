@@ -14,21 +14,9 @@ export default function AppShell() {
   const user = useAppSelector((s) => s.auth.user);
   const [unread, setUnread] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setSidebarOpen(false); // Close sidebar when switching to desktop
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => { });
+    notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => {});
   }, []);
 
   function handleLogout() {
@@ -68,9 +56,8 @@ export default function AppShell() {
         <nav style={{ flex: 1, paddingTop: 8 }}>
           {navLinks.map((link) => (
             <NavLink
-              to="/settings"
-              end
-              onClick={() => isMobile && setSidebarOpen(false)}
+              key={link.to}
+              to={link.to}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
@@ -88,80 +75,8 @@ export default function AppShell() {
               <span style={{ fontSize: 16, width: 20, textAlign: 'center', flexShrink: 0 }}>{link.icon}</span>
               <span>{link.label}</span>
             </NavLink>
-
-            <button
-              onClick={handleLogout}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                padding: '12px 1rem',
-                background: 'transparent',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                textAlign: 'left',
-                marginTop: '1rem',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, fontSize: '1.1rem' }}>
-                [→
-              </div>
-              Logout
-            </button>
-          </div>
+          ))}
         </nav>
-      )}
-
-      {/* Main Content Area */}
-      <main style={{ flex: 1, position: 'relative', background: '#f9f9fa', display: 'flex', flexDirection: 'column', width: '100%' }}>
-        {/* Header with hamburger menu for mobile */}
-        <div style={{
-          padding: isMobile ? '1rem' : '1.5rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          borderBottom: '1px solid #e5e7eb',
-          backgroundColor: '#fff',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {isMobile && (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: '#333',
-                }}
-                aria-label="Toggle menu"
-              >
-                ☰
-              </button>
-            )}
-            {isMobile && (
-              <img src={iyteLogo} alt="IYTE logo" style={{ width: 35, height: 35, objectFit: 'contain' }} />
-            )}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {/* Notification Panel Positioning */}
-            {showNotifications && (
-              <div style={{ position: 'absolute', top: '70px', right: isMobile ? '1rem' : '1.5rem', zIndex: 50 }}>
-                <NotificationPanel
-                  onClose={() => setShowNotifications(false)}
-                  onRead={() => setUnread((n) => Math.max(0, n - 1))}
-                />
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Bottom actions */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', paddingBottom: 8 }}>
