@@ -44,6 +44,7 @@ export default function RegisterPage() {
     setError,
     clearErrors,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -57,6 +58,7 @@ export default function RegisterPage() {
   const passwordValue = watch('password');
   const [showVerifyPopup, setShowVerifyPopup] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   // Keep a ref to the latest registration so the unmount cleanup always sees current values
   // without adding registration to the dependency array (which would fire cleanup on every session change)
@@ -66,6 +68,12 @@ export default function RegisterPage() {
   useEffect(() => {
     dispatch(fetchCaptcha());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!captcha.expiresInSeconds || !captcha.captchaId) return;
+    const timer = setTimeout(() => dispatch(fetchCaptcha()), captcha.expiresInSeconds * 1000);
+    return () => clearTimeout(timer);
+  }, [captcha.expiresInSeconds, captcha.captchaId, dispatch]);
 
   useEffect(() => {
     if (user) navigate('/student/dashboard', { replace: true });
@@ -122,17 +130,23 @@ export default function RegisterPage() {
       return;
     }
 
-    await dispatch(registerVerifyThunk({
+    const action = await dispatch(registerVerifyThunk({
       verificationSessionId: sessionId,
       code: verificationCode.trim(),
     }));
+
+    if (registerVerifyThunk.rejected.match(action)) {
+      setOtpError((action.payload as string) ?? 'Verification failed');
+    }
   }
 
   async function onSubmit(values: FormValues) {
     clearErrors(['dateOfBirth', 'passportExpirationDate', 'identityDocumentType', 'confirmPassword', 'captchaAnswer']);
 
     if (values.password !== values.confirmPassword) {
-      setError('confirmPassword', { type: 'manual', message: 'Passwords do not match' });
+      setError('confirmPassword', { type: 'manual', message: 'Passwords do not match.' });
+      setValue('password', '');
+      setValue('confirmPassword', '');
       return;
     }
 
@@ -194,6 +208,13 @@ export default function RegisterPage() {
     }
   }
 
+  function onInvalid(fieldErrors: typeof errors) {
+    if (fieldErrors.password?.type === 'minLength' || fieldErrors.confirmPassword) {
+      setValue('password', '');
+      setValue('confirmPassword', '');
+    }
+  }
+
   const isSubmitting = registerStatus === 'loading';
   const isVerifying = status === 'loading';
 
@@ -245,11 +266,20 @@ export default function RegisterPage() {
         overflowY: 'auto',
         maxHeight: '100vh',
       }}>
-        <form onSubmit={handleSubmit(onSubmit)} style={styles.card} noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} style={styles.card} noValidate>
         <h2 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 700, color: '#111827' }}>Create Account</h2>
         <p style={{ margin: '0 0 18px', fontSize: 14, color: '#6b7280' }}>Fill in your details to register</p>
 
-        {error && <div style={styles.serverError}>{error}</div>}
+        {error && error === 'Account already exists for this email.' ? (
+          <div style={styles.serverError}>
+            {error}{' '}
+            <Link to="/login" style={{ color: PRIMARY, fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+            {' or '}
+            <Link to="/forgot-password" style={{ color: PRIMARY, fontWeight: 700, textDecoration: 'none' }}>Forgot Password?</Link>
+          </div>
+        ) : error ? (
+          <div style={styles.serverError}>{error}</div>
+        ) : null}
 
         <label style={styles.label} htmlFor="firstName">First Name</label>
         <input id="firstName" style={styles.input} {...register('firstName', { required: 'Required' })} />
@@ -293,7 +323,7 @@ export default function RegisterPage() {
               style={styles.input}
               {...register('tcIdentityNumber', {
                 required: 'Required',
-                pattern: { value: /^\d{11}$/, message: 'TC identity number must be 11 digits' },
+                pattern: { value: /^\d{11}$/, message: 'TC No must consist of exactly 11 numeric digits.' },
               })}
             />
             {errors.tcIdentityNumber && <span style={styles.fieldError}>{errors.tcIdentityNumber.message}</span>}
@@ -341,7 +371,7 @@ export default function RegisterPage() {
           id="password"
           type="password"
           style={styles.input}
-          {...register('password', { required: 'Required', minLength: { value: 8, message: 'Min 8 characters' } })}
+          {...register('password', { required: 'Required', minLength: { value: 8, message: 'Password must be at least 8 characters long.' } })}
         />
         {errors.password && <span style={styles.fieldError}>{errors.password.message}</span>}
 
@@ -352,7 +382,7 @@ export default function RegisterPage() {
           style={styles.input}
           {...register('confirmPassword', {
             required: 'Required',
-            validate: (value) => value === passwordValue || 'Passwords do not match',
+            validate: (value) => value === passwordValue || 'Passwords do not match.',
           })}
         />
         {errors.confirmPassword && <span style={styles.fieldError}>{errors.confirmPassword.message}</span>}
@@ -410,10 +440,21 @@ export default function RegisterPage() {
             )}
             <input
               value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              onChange={(e) => {
+                setVerificationCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                setOtpError(null);
+              }}
               placeholder="6-digit code"
               style={styles.input}
             />
+            {otpError && (
+              <div style={{ ...styles.fieldError, marginTop: 4 }}>
+                {otpError}{' '}
+                <button type="button" onClick={closeVerifyPopup} style={styles.linkButton}>
+                  Resend Code
+                </button>
+              </div>
+            )}
             <div style={styles.modalActions}>
               <button type="button" style={styles.cancelButton} onClick={closeVerifyPopup}>
                 Close
