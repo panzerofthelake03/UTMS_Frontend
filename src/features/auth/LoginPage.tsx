@@ -25,12 +25,18 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { status, error, user } = useAppSelector((s) => s.auth);
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>();
 
   useEffect(() => {
     if (user) navigate(roleHome(user.role), { replace: true });
     return () => { dispatch(clearError()); };
   }, [user, navigate, dispatch]);
+
+  useEffect(() => {
+    if (status === 'failed') {
+      setValue('password', '');
+    }
+  }, [status, setValue]);
 
   function onSubmit(values: FormValues) {
     dispatch(login(values));

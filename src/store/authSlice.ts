@@ -99,6 +99,13 @@ export const login = createAsyncThunk('auth/login', async (credentials: LoginReq
     const { data } = await authApi.login(credentials);
     return data.data;
   } catch (error) {
+    const axiosError = error as AxiosError;
+    if (axiosError.code === 'ECONNABORTED') {
+      return rejectWithValue('Server is taking too long to respond. Please try again later.');
+    }
+    if (!axiosError.response) {
+      return rejectWithValue('System unavailable, please try again later.');
+    }
     return rejectWithValue(getApiErrorMessage(error, 'Authentication failed'));
   }
 });
