@@ -6,7 +6,8 @@ import { showToast } from '../components/ToastContainer';
 const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 2000,
+  // 60s to tolerate Render free-tier cold starts (~1 min wake-up after idle).
+  timeout: 60000,
 });
 
 function isAuthEndpoint(url?: string) {

@@ -6,6 +6,8 @@ import ProtectedRoute from './shared/components/ProtectedRoute';
 import AppShell from './shared/components/AppShell';
 import LoginPage from './features/auth/LoginPage';
 import RegisterPage from './features/auth/RegisterPage';
+import ForgotPasswordPage from './features/auth/ForgotPasswordPage';
+import ResetPasswordPage from './features/auth/ResetPasswordPage';
 import StudentDashboard from './features/student/DashboardPage';
 import StudentProfilePage from './features/student/ProfilePage';
 import ApplicationListPage from './features/student/ApplicationListPage';
@@ -30,6 +32,8 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unauthorized" element={<div style={{ padding: '2rem', color: '#ef4444' }}>Access denied.</div>} />
             <Route path="/" element={<Navigate to="/login" replace />} />
 

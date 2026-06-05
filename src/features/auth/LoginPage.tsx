@@ -107,7 +107,7 @@ export default function LoginPage() {
           {errors.password && <span style={s.fieldError}>{errors.password.message}</span>}
 
           <div style={{ textAlign: 'right', marginTop: 8, marginBottom: 24 }}>
-            <a href="#" style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none' }}>Forgot Password?</a>
+            <Link to="/forgot-password" style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none' }}>Forgot Password?</Link>
           </div>
 
           <button type="submit" disabled={status === 'loading'} style={s.button}>
