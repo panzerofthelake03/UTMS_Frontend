@@ -87,6 +87,12 @@ export const adminApi = {
     axiosInstance.get<{ data: AdminApplication[] }>('/api/ydyo/applications'),
   ydyoEnglishReview: (id: number, data: EnglishReviewRequest) =>
     axiosInstance.post<{ data: AdminApplication }>(`/api/ydyo/applications/${id}/english-review`, data),
+  /** UC 2.1 - Set inline decision (PASS / FAIL / DOCUMENT_REQUIRED) */
+  ydyoSetDecision: (id: number, decision: string) =>
+    axiosInstance.put<{ data: AdminApplication }>(`/api/ydyo/applications/${id}/decision`, { decision }),
+  /** UC 2.1 - Batch send all decided applications to OIDB */
+  ydyoSendToOidb: () =>
+    axiosInstance.post<{ data: { processed: number } }>('/api/ydyo/send-to-oidb'),
 
   // YGK
   ygkList: () =>

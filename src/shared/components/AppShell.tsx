@@ -147,10 +147,10 @@ function buildNavLinks(role: string): { to: string; label: string; icon: string 
     case 'ROLE_STUDENT':
       return [
         { to: '/student/dashboard', label: 'Dashboard', icon: '⊞' },
-        { to: '/student/profile', label: 'My Profile', icon: '👤' },
-        { to: '/student/applications', label: 'Application Status Tracking', icon: '📊' },
-        { to: '/student/applications/new', label: 'Document Upload', icon: '📄' },
-        { to: '/student/dashboard', label: 'Contact & Support', icon: '🎧' },
+        { to: '/student/applications/new', label: 'Document Upload', icon: '📤' },
+        { to: '/student/status', label: 'Application Status Tracking', icon: '📊' },
+        { to: '/student/results', label: 'View Results', icon: '🏆' },
+        { to: '/student/contact', label: 'Contact & Support', icon: '🎧' },
       ];
     case 'ROLE_OIDB':
       return [{ to: '/admin/oidb/applications', label: 'Applications Inbox', icon: '📥' }];
