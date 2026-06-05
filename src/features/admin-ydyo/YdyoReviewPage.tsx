@@ -9,6 +9,7 @@ import Spinner from '../../shared/components/Spinner';
 import DocumentUpload from '../student/components/DocumentUpload';
 
 interface FormValues { decision: string; note: string }
+interface ExamFormValues { score: string; decision: 'PASS' | 'FAIL'; note: string }
 
 export default function YdyoReviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ export default function YdyoReviewPage() {
   const [pdfLoading, setPdfLoading] = useState<number | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>();
+  const examForm = useForm<ExamFormValues>({ defaultValues: { score: '', decision: 'PASS', note: '' } });
 
   const appId = Number(id);
 
@@ -72,6 +74,23 @@ export default function YdyoReviewPage() {
       setServerError(err.response?.data?.error?.message ?? 'Document could not be opened.');
     } finally {
       setPdfLoading(null);
+    }
+  }
+
+  async function onExamReview(values: ExamFormValues) {
+    setServerError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await adminApi.ydyoSetDecision(appId, values.decision);
+      setApp(res.data.data);
+      setSuccessMessage(
+        values.decision === 'PASS'
+          ? `Sınav geçildi${values.score ? ` (${values.score} puan)` : ''}. Karar kaydedildi — toplu gönderimde YGK'ya iletilecek.`
+          : `Sınav başarısız${values.score ? ` (${values.score} puan)` : ''}. Karar kaydedildi — toplu gönderimde reddedilecek.`
+      );
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setServerError(err.response?.data?.error?.message ?? 'İşlem başarısız.');
     }
   }
 
@@ -149,26 +168,63 @@ export default function YdyoReviewPage() {
           onClose={closePdfModal}
         />
       )}
-      {(app.status === 'UNDER_YDYO_REVIEW' || app.status === 'WAITING_EXAM_RESULT') && (
+      {/* UC 2.1 — Document review (initial YDYO check) */}
+      {app.status === 'UNDER_YDYO_REVIEW' && (
         <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>English Proficiency Decision</h3>
+          <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>İngilizce Yeterlilik Belgesi Kararı</h3>
           {serverError && <div style={errBox}>{serverError}</div>}
           {successMessage && <div style={okBox}>{successMessage}</div>}
 
-          <label htmlFor="decision" style={labelStyle}>Decision</label>
-          <select id="decision" style={inputStyle} {...register('decision', { required: 'Required' })}>
-            <option value="">Select…</option>
-            <option value="APPROVED">APPROVED</option>
-            <option value="EXAM_REQUIRED">EXAM_REQUIRED</option>
+          <label htmlFor="decision" style={labelStyle}>Karar</label>
+          <select id="decision" style={inputStyle} {...register('decision', { required: 'Gereklidir' })}>
+            <option value="">Seçiniz…</option>
+            <option value="APPROVED">ONAYLANDI — Belge yeterli</option>
+            <option value="EXAM_REQUIRED">SINAV GEREKLİ — Öğrenci sınava girecek</option>
           </select>
           {errors.decision && <span style={fieldErr}>{errors.decision.message}</span>}
 
-          <label htmlFor="note" style={labelStyle}>Note</label>
-          <textarea id="note" rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} {...register('note', { required: 'Required' })} />
+          <label htmlFor="note" style={labelStyle}>Not</label>
+          <textarea id="note" rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} {...register('note', { required: 'Gereklidir' })} />
           {errors.note && <span style={fieldErr}>{errors.note.message}</span>}
 
           <button type="submit" disabled={isSubmitting} style={primaryBtn}>
-            {isSubmitting ? 'Submitting…' : 'Submit Decision'}
+            {isSubmitting ? 'Kaydediliyor…' : 'Kararı Kaydet'}
+          </button>
+        </form>
+      )}
+
+      {/* UC 2.1 — Exam result review (after student uploads exam result) */}
+      {app.status === 'WAITING_EXAM_RESULT' && (
+        <form onSubmit={examForm.handleSubmit(onExamReview)} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Sınav Sonucu İncelemesi</h3>
+          <p style={{ margin: '0 0 8px', fontSize: 12, color: '#6b7280' }}>
+            Öğrenci sınav sonuç belgesini yükledi. Skoru girin ve karar verin.
+          </p>
+          {serverError && <div style={errBox}>{serverError}</div>}
+          {successMessage && <div style={okBox}>{successMessage}</div>}
+
+          <label htmlFor="examScore" style={labelStyle}>Sınav Skoru <span style={{ fontWeight: 400, color: '#9ca3af' }}>(opsiyonel)</span></label>
+          <input
+            id="examScore"
+            type="number"
+            min={0}
+            max={100}
+            placeholder="0 – 100"
+            style={{ ...inputStyle, maxWidth: 120 }}
+            {...examForm.register('score')}
+          />
+
+          <label htmlFor="examDecision" style={labelStyle}>Karar</label>
+          <select id="examDecision" style={{ ...inputStyle, maxWidth: 260 }} {...examForm.register('decision', { required: 'Gereklidir' })}>
+            <option value="PASS">BAŞARILI — YGK değerlendirmesine gönder</option>
+            <option value="FAIL">BAŞARISIZ — Başvuruyu reddet</option>
+          </select>
+
+          <label htmlFor="examNote" style={labelStyle}>Not <span style={{ fontWeight: 400, color: '#9ca3af' }}>(opsiyonel)</span></label>
+          <textarea id="examNote" rows={2} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} {...examForm.register('note')} />
+
+          <button type="submit" disabled={examForm.formState.isSubmitting} style={primaryBtn}>
+            {examForm.formState.isSubmitting ? 'Kaydediliyor…' : 'Sınav Kararını Kaydet'}
           </button>
         </form>
       )}
