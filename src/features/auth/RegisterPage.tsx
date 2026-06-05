@@ -435,9 +435,6 @@ export default function RegisterPage() {
             <p style={styles.modalText}>
               Enter the 6-digit code sent to <strong>{registration.maskedEmail}</strong>.
             </p>
-            {registration.devVerificationCode && (
-              <p style={styles.devHint}>Dev only code: {registration.devVerificationCode}</p>
-            )}
             <input
               value={verificationCode}
               onChange={(e) => {
@@ -505,5 +502,4 @@ const styles = {
   modalActions: { display: 'flex', gap: 8, marginTop: 10 } as React.CSSProperties,
   cancelButton: { marginTop: 8, padding: '10px', background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: 4, fontSize: 15, cursor: 'pointer', fontWeight: 600 } as React.CSSProperties,
   smallHelp: { fontSize: 12, color: '#6b7280', marginTop: 8 },
-  devHint: { fontSize: 12, color: '#0f766e', background: '#ecfeff', border: '1px solid #99f6e4', padding: '6px 8px', borderRadius: 6 },
 };
