@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { applicationApi, type Application, type Document, type TimelineEntry } from '../../shared/api/applicationApi';
 import ApplicationStatusBadge from '../../shared/components/ApplicationStatusBadge';
+import PdfViewerModal from '../../shared/components/PdfViewerModal';
 import Spinner from '../../shared/components/Spinner';
 import Timeline from './components/Timeline';
 import DocumentUpload from './components/DocumentUpload';
@@ -17,6 +18,9 @@ export default function ApplicationDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; title: string } | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<number | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   const appId = Number(id);
 
@@ -67,19 +71,31 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  async function handleDownload(doc: Document) {
+  async function handleViewPdf(doc: Document) {
+    setPdfLoading(doc.id);
     setDocError(null);
     try {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
       const res = await applicationApi.downloadDocument(appId, doc.id);
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: doc.mimeType }));
-      const link = window.document.createElement('a');
-      link.href = blobUrl;
-      link.download = doc.originalFilename;
-      link.click();
-      URL.revokeObjectURL(blobUrl);
+      const url = URL.createObjectURL(new Blob([res.data], { type: doc.mimeType || 'application/pdf' }));
+      blobUrlRef.current = url;
+      setViewingDoc({ url, title: doc.originalFilename });
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setDocError(err.response?.data?.error?.message ?? 'Document download failed.');
+      setDocError(err.response?.data?.error?.message ?? 'Document could not be opened.');
+    } finally {
+      setPdfLoading(null);
+    }
+  }
+
+  function closePdfModal() {
+    setViewingDoc(null);
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
     }
   }
 
@@ -159,7 +175,13 @@ export default function ApplicationDetailPage() {
                   <td style={td}><ScanBadge status={d.scanStatus} /></td>
                   <td style={td}>{new Date(d.createdAt).toLocaleDateString()}</td>
                   <td style={td}>
-                    <button onClick={() => void handleDownload(d)} style={docBtn}>View PDF</button>
+                    <button
+                      onClick={() => void handleViewPdf(d)}
+                      disabled={pdfLoading === d.id}
+                      style={docBtn}
+                    >
+                      {pdfLoading === d.id ? 'Loading…' : 'View PDF'}
+                    </button>
                     {canSubmit && (
                       <button onClick={() => void handleDelete(d.id)} style={docDangerBtn}>Delete</button>
                     )}
@@ -175,6 +197,14 @@ export default function ApplicationDetailPage() {
         <h3 style={sectionTitle}>Timeline</h3>
         <Timeline entries={timeline} />
       </section>
+
+      {viewingDoc && (
+        <PdfViewerModal
+          title={viewingDoc.title}
+          url={viewingDoc.url}
+          onClose={closePdfModal}
+        />
+      )}
     </div>
   );
 }
