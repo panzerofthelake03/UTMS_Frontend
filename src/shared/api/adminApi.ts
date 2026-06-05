@@ -15,6 +15,18 @@ export interface StudentProfile {
   currentUniversity: string | null;
 }
 
+export interface PlacementEntry {
+  rank: number;
+  applicationId: number;
+  studentName: string;
+  studentNumber: string;
+  department: string;
+  faculty: string;
+  term: string;
+  compositeScore: number | null;
+  status: string;
+}
+
 export interface AdminApplication extends Application {
   studentNumber: string;
   studentFirstName: string;
@@ -118,6 +130,22 @@ export const adminApi = {
     axiosInstance.get<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/evaluation`),
   ygkEvaluate: (id: number, data: EvaluationRequest) =>
     axiosInstance.post<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/evaluate`, data),
+
+  // Dean (UC 4.1)
+  deanList: () =>
+    axiosInstance.get<{ data: AdminApplication[] }>('/api/dean/applications'),
+  deanApprove: (id: number, note?: string) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/dean/applications/${id}/approve`, { note }),
+  deanReject: (id: number, note?: string) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/dean/applications/${id}/reject`, { note }),
+
+  // YGK Placement (UC 5.2)
+  ygkPlacement: () =>
+    axiosInstance.get<{ data: PlacementEntry[] }>('/api/ygk/placement'),
+
+  // OIDB Results (UC 5.3)
+  oidbResults: () =>
+    axiosInstance.get<{ data: AdminApplication[] }>('/api/oidb/results'),
 
   // Intibak
   intibakListExemptions: (id: number) =>

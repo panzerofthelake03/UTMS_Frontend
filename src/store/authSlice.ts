@@ -15,6 +15,7 @@ export type UserRole =
   | 'ROLE_YDYO'
   | 'ROLE_YGK'
   | 'ROLE_INTIBAK'
+  | 'ROLE_DEAN'
   | 'ROLE_ADMIN';
 
 interface AuthUser {
