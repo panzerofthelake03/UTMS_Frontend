@@ -6,28 +6,32 @@ import Spinner from '../../shared/components/Spinner';
 
 const FEATURE_CARDS = [
   {
-    icon: '�',
-    title: 'My Profile',
-    subtitle: 'View and update your personal information',
-    to: '/student/profile',
+    icon: '📤',
+    title: 'Document Upload',
+    subtitle: 'Upload required documents',
+    to: '/student/applications/new',
+    dot: true,
   },
   {
-    icon: '📊',
+    icon: '↗',
     title: 'Application Status Tracking',
-    subtitle: 'Track the progress of your transfer application',
-    to: '/student/applications',
+    subtitle: 'Track your application stage',
+    to: '/student/status',
+    dot: false,
   },
   {
-    icon: '🏅',
+    icon: '🏆',
     title: 'View Results',
-    subtitle: 'Check your evaluation results and decisions',
-    to: '/student/profile',
+    subtitle: 'Check final decision',
+    to: '/student/results',
+    dot: false,
   },
   {
     icon: '🎧',
     title: 'Contact & Support',
-    subtitle: 'Reach out to the admissions office for help',
-    to: '/student/dashboard',
+    subtitle: 'Contact Student Affairs',
+    to: '/student/contact',
+    dot: false,
   },
 ];
 
@@ -38,88 +42,47 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    applicationApi.list()
-      .then((r) => setApps(r.data.data))
-      .finally(() => setLoading(false));
+    applicationApi.list().then((r) => setApps(r.data.data)).finally(() => setLoading(false));
   }, []);
 
-  const latest = apps[apps.length - 1];
-  const statusLabel = latest ? latest.status.replace(/_/g, ' ') : 'No Application';
+  const latest = apps[0];
+  const statusLabel = latest ? latest.status.replace(/_/g, ' ') : 'No Application Yet';
 
   return (
-    <div style={{ padding: '2.5rem 2rem' }}>
+    <div className="p-6 md:p-10">
       {/* Welcome heading */}
-      <h1 style={{ margin: '0 0 8px', fontSize: 32, fontWeight: 700, color: '#111827' }}>
-        Welcome, {user?.firstName} {user?.lastName}!
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        Welcome, {user?.firstName} {user?.lastName}
       </h1>
 
       {/* Status badge */}
       {loading ? (
-        <Spinner />
+        <div className="mb-8"><Spinner /></div>
       ) : (
-        <div style={{
-          display: 'inline-block',
-          background: '#FEF3C7',
-          color: '#92400E',
-          padding: '5px 14px',
-          borderRadius: 20,
-          fontSize: 13,
-          fontWeight: 600,
-          marginBottom: 36,
-        }}>
-          Current Status: {statusLabel}
-        </div>
+        <span className="inline-flex items-center mb-8 px-4 py-1.5 rounded-full bg-amber-100 text-amber-800 text-sm font-semibold">
+          ● Current Status: {statusLabel}
+        </span>
       )}
 
       {/* Feature cards grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 20,
-      }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl">
         {FEATURE_CARDS.map((card) => (
-          <div
+          <button
             key={card.title}
             onClick={() => navigate(card.to)}
-            style={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: 10,
-              padding: '1.5rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 16,
-              transition: 'box-shadow 0.15s',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
+            className="group relative bg-white border border-gray-100 rounded-2xl p-6 text-left hover:shadow-lg hover:border-[#8b1a1a]/20 transition-all duration-200 cursor-pointer"
           >
-            <div style={{
-              width: 48,
-              height: 48,
-              background: '#f3f4f6',
-              borderRadius: 10,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 22,
-              flexShrink: 0,
-            }}>
+            {card.dot && (
+              <span className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-red-500" />
+            )}
+            <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl mb-4 group-hover:bg-[#8b1a1a]/5 transition">
               {card.icon}
             </div>
-            <div>
-              <div style={{ fontWeight: 700, color: '#111827', fontSize: 15, marginBottom: 4 }}>
-                {card.title}
-              </div>
-              <div style={{ fontSize: 13, color: '#6b7280' }}>
-                {card.subtitle}
-              </div>
-            </div>
-          </div>
+            <div className="font-bold text-gray-900 text-base mb-1">{card.title}</div>
+            <div className="text-sm text-gray-500">{card.subtitle}</div>
+          </button>
         ))}
       </div>
     </div>
   );
 }
-
