@@ -1,43 +1,39 @@
 import iyteLogo from '../../assets/iyte-logo.png';
+import heroBg from '../../assets/hero.png';
 
-export const AUTH_PRIMARY = '#8B1A1A';
+export const AUTH_PRIMARY = '#8b1a1a';
 
 /**
- * The maroon branding panel shown on the left half of the auth screens
- * (Login, Register, Forgot Password, Reset Password). Mirrors the LoginPage layout.
+ * Left branding panel for all auth screens.
+ * Shows campus aerial photo with IYTE logo and title overlay.
+ * Hidden on mobile (< md), visible on md+.
  */
 export default function AuthBrandPanel() {
   return (
-    <div
-      style={{
-        flex: 1,
-        background: AUTH_PRIMARY,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        padding: '2rem',
-      }}
-    >
-      {/* Decorative shapes */}
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        <div style={{ position: 'absolute', top: -80, left: -100, width: 380, height: 380, border: '50px solid rgba(255,255,255,0.06)', borderRadius: 50, transform: 'rotate(20deg)' }} />
-        <div style={{ position: 'absolute', top: -50, left: -60, width: 280, height: 280, border: '35px solid rgba(255,255,255,0.04)', borderRadius: 36, transform: 'rotate(10deg)' }} />
-        <div style={{ position: 'absolute', bottom: -100, right: -80, width: 420, height: 420, border: '55px solid rgba(255,255,255,0.06)', borderRadius: 60, transform: 'rotate(-15deg)' }} />
-        <div style={{ position: 'absolute', bottom: -70, right: -50, width: 320, height: 320, border: '40px solid rgba(255,255,255,0.04)', borderRadius: 44, transform: 'rotate(-8deg)' }} />
-      </div>
-      {/* Branding */}
-      <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
-        <img
-          src={iyteLogo}
-          alt="IYTE logo"
-          style={{ width: 100, height: 100, borderRadius: '50%', background: '#fff', padding: 8, objectFit: 'contain', marginBottom: 24 }}
-        />
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>Izmir Institute of Technology</h1>
-        <p style={{ margin: '10px 0 6px', fontSize: 14, opacity: 0.85 }}>Undergraduate Transfer Management System</p>
-        <p style={{ margin: 0, fontSize: 13, opacity: 0.6, letterSpacing: 3 }}>UTMS</p>
+    <div className="hidden md:flex flex-col items-center justify-center relative w-2/5 min-h-screen overflow-hidden shrink-0">
+      {/* Campus photo */}
+      <img
+        src={heroBg}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      {/* Color overlay */}
+      <div className="absolute inset-0 bg-[#8b1a1a] opacity-75" />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center text-center px-10">
+        <div className="mb-8 p-3 rounded-full bg-white/15 backdrop-blur-sm border border-white/25">
+          <img src={iyteLogo} alt="IYTE Logo" className="w-24 h-24 object-contain rounded-full" />
+        </div>
+        <h1 className="text-white text-3xl font-bold leading-tight mb-3 m-0">
+          Izmir Institute of Technology
+        </h1>
+        <p className="text-white/85 text-base font-medium tracking-wide m-0">
+          Undergraduate Transfer Management System
+        </p>
+        <p className="text-white/60 text-sm mt-2 font-bold tracking-widest m-0">
+          UTMS
+        </p>
       </div>
     </div>
   );

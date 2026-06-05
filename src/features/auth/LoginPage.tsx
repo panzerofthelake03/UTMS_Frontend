@@ -1,32 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { login, clearError } from '../../store/authSlice';
 import { useAppDispatch, useAppSelector } from '../../shared/hooks';
 import type { UserRole } from '../../store/authSlice';
-import iyteLogo from '../../assets/iyte-logo.png';
+import AuthBrandPanel from './AuthBrandPanel';
 
 interface FormValues { email: string; password: string }
-
-const PRIMARY = '#8B1A1A';
 
 function roleHome(role: UserRole): string {
   switch (role) {
     case 'ROLE_STUDENT': return '/student/dashboard';
-    case 'ROLE_OIDB': return '/admin/oidb/applications';
-    case 'ROLE_YDYO': return '/admin/ydyo/applications';
-    case 'ROLE_YGK': return '/admin/ygk/applications';
+    case 'ROLE_OIDB':    return '/admin/oidb/applications';
+    case 'ROLE_YDYO':    return '/admin/ydyo/applications';
+    case 'ROLE_YGK':     return '/admin/ygk/applications';
     case 'ROLE_INTIBAK': return '/admin/intibak/applications';
-    case 'ROLE_DEAN': return '/admin/dean/applications';
-    case 'ROLE_ADMIN': return '/admin/oidb/applications';
+    case 'ROLE_DEAN':    return '/admin/dean/applications';
+    case 'ROLE_ADMIN':   return '/admin/oidb/applications';
   }
 }
 
 export default function LoginPage() {
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  const dispatch   = useAppDispatch();
+  const navigate   = useNavigate();
   const { status, error, user } = useAppSelector((s) => s.auth);
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<FormValues>();
+  const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
     if (user) navigate(roleHome(user.role), { replace: true });
@@ -34,118 +33,88 @@ export default function LoginPage() {
   }, [user, navigate, dispatch]);
 
   useEffect(() => {
-    if (status === 'failed') {
-      setValue('password', '');
-    }
+    if (status === 'failed') setValue('password', '');
   }, [status, setValue]);
 
-  function onSubmit(values: FormValues) {
-    dispatch(login(values));
-  }
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Left panel */}
-      <div style={{
-        flex: 1,
-        background: PRIMARY,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-        padding: '2rem',
-      }}>
-        {/* Decorative shapes */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: -80, left: -100, width: 380, height: 380, border: '50px solid rgba(255,255,255,0.06)', borderRadius: 50, transform: 'rotate(20deg)' }} />
-          <div style={{ position: 'absolute', top: -50, left: -60, width: 280, height: 280, border: '35px solid rgba(255,255,255,0.04)', borderRadius: 36, transform: 'rotate(10deg)' }} />
-          <div style={{ position: 'absolute', bottom: -100, right: -80, width: 420, height: 420, border: '55px solid rgba(255,255,255,0.06)', borderRadius: 60, transform: 'rotate(-15deg)' }} />
-          <div style={{ position: 'absolute', bottom: -70, right: -50, width: 320, height: 320, border: '40px solid rgba(255,255,255,0.04)', borderRadius: 44, transform: 'rotate(-8deg)' }} />
-        </div>
-        {/* Branding */}
-        <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
-          <img src={iyteLogo} alt="IYTE logo" style={{ width: 100, height: 100, borderRadius: '50%', background: '#fff', padding: 8, objectFit: 'contain', marginBottom: 24 }} />
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 700, lineHeight: 1.3 }}>Izmir Institute of Technology</h1>
-          <p style={{ margin: '10px 0 6px', fontSize: 14, opacity: 0.85 }}>Undergraduate Transfer Management System</p>
-          <p style={{ margin: 0, fontSize: 13, opacity: 0.6, letterSpacing: 3 }}>UTMS</p>
-        </div>
-      </div>
+    <div className="flex min-h-screen">
+      <AuthBrandPanel />
 
       {/* Right panel */}
-      <div style={{
-        width: '50%',
-        minWidth: 400,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#fff',
-        padding: '2rem',
-      }}>
-        <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%', maxWidth: 400 }} noValidate>
-          <h2 style={{ margin: '0 0 6px', fontSize: 30, fontWeight: 700, color: '#111827' }}>Login</h2>
-          <p style={{ margin: '0 0 28px', fontSize: 14, color: '#6b7280' }}>Enter your credentials to access your account</p>
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12 md:px-16">
+        <form
+          onSubmit={handleSubmit((v) => dispatch(login(v)))}
+          className="w-full max-w-md"
+          noValidate
+        >
+          <h2 className="text-3xl font-bold text-gray-900 mb-1">Login</h2>
+          <p className="text-sm text-gray-500 mb-8">Enter your credentials to access your account</p>
 
-          {error && <div style={s.serverError}>{error}</div>}
+          {error && (
+            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
-          <label style={s.label} htmlFor="email">Email or Username</label>
-          <input
-            id="email"
-            type="email"
-            style={s.input}
-            {...register('email', { required: 'Email is required' })}
-          />
-          {errors.email && <span style={s.fieldError}>{errors.email.message}</span>}
-
-          <label style={{ ...s.label, marginTop: 16 }} htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            style={s.input}
-            {...register('password', { required: 'Password is required' })}
-          />
-          {errors.password && <span style={s.fieldError}>{errors.password.message}</span>}
-
-          <div style={{ textAlign: 'right', marginTop: 8, marginBottom: 24 }}>
-            <Link to="/forgot-password" style={{ fontSize: 13, color: '#6b7280', textDecoration: 'none' }}>Forgot Password?</Link>
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="email">
+              Email or Username
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email or username"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b1a1a]/30 focus:border-[#8b1a1a] transition"
+              {...register('email', { required: 'Email is required' })}
+            />
+            {errors.email && <span className="text-xs text-red-500 mt-1 block">{errors.email.message}</span>}
           </div>
 
-          <button type="submit" disabled={status === 'loading'} style={s.button}>
+          <div className="mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="password">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPass ? 'text' : 'password'}
+                placeholder="Enter your password"
+                className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b1a1a]/30 focus:border-[#8b1a1a] transition"
+                {...register('password', { required: 'Password is required' })}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPass ? '🙈' : '👁'}
+              </button>
+            </div>
+            {errors.password && <span className="text-xs text-red-500 mt-1 block">{errors.password.message}</span>}
+          </div>
+
+          <div className="text-right mb-7">
+            <Link to="/forgot-password" className="text-sm text-gray-500 hover:text-[#8b1a1a] transition">
+              Forgot Password?
+            </Link>
+          </div>
+
+          <button
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full py-3 rounded-lg bg-[#8b1a1a] hover:bg-[#6b1414] text-white font-semibold text-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             {status === 'loading' ? 'Signing in…' : 'Login'}
           </button>
 
-          <p style={{ marginTop: 20, fontSize: 13, textAlign: 'center', color: '#6b7280' }}>
+          <p className="mt-6 text-sm text-center text-gray-500">
             Don't have an account?{' '}
-            <Link to="/register" style={{ color: PRIMARY, fontWeight: 700, textDecoration: 'none' }}>Register</Link>
+            <Link to="/register" className="text-[#8b1a1a] font-semibold hover:underline">
+              Register
+            </Link>
           </p>
         </form>
       </div>
     </div>
   );
 }
-
-const s = {
-  label: { display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 } as React.CSSProperties,
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    border: '1px solid #e5e7eb',
-    borderRadius: 6,
-    fontSize: 14,
-    background: '#f3f4f6',
-    color: '#111827',
-    boxSizing: 'border-box',
-    outline: 'none',
-  } as React.CSSProperties,
-  fieldError: { display: 'block', fontSize: 12, color: '#ef4444', marginTop: 4 } as React.CSSProperties,
-  serverError: {
-    background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6,
-    padding: '10px 12px', fontSize: 13, color: '#b91c1c', marginBottom: 16,
-  } as React.CSSProperties,
-  button: {
-    width: '100%', padding: '12px', background: PRIMARY, color: '#fff',
-    border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 600, cursor: 'pointer',
-  } as React.CSSProperties,
-};
-

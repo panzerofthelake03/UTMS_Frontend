@@ -3,46 +3,39 @@ import { useNavigate } from 'react-router-dom';
 import { applicationApi, type Application, type TimelineEntry } from '../../shared/api/applicationApi';
 import Spinner from '../../shared/components/Spinner';
 
-const PRIMARY = '#8b1a1a';
-
-// UC 1.8: visual stage pipeline
 const STAGES = [
-  { key: 'DOCUMENT_VERIFICATION', label: 'Document Verification', statuses: ['SUBMITTED', 'UNDER_OIDB_REVIEW'] },
-  { key: 'LANGUAGE_REVIEW', label: 'Language Review (YDYO)', statuses: ['UNDER_YDYO_REVIEW', 'WAITING_EXAM_RESULT'] },
-  { key: 'BOARD_REVIEW', label: 'Board Review (YGK)', statuses: ['UNDER_YGK_REVIEW'] },
-  { key: 'DEANS_APPROVAL', label: "Dean's Approval", statuses: ['PENDING_DEAN_APPROVAL'] },
-  { key: 'FINALIZED', label: 'Finalized', statuses: ['ACCEPTED', 'REJECTED'] },
+  { key: 'DOC_VERIFY',   label: 'Document Verification',  statuses: ['SUBMITTED', 'UNDER_OIDB_REVIEW'] },
+  { key: 'LANG_REVIEW',  label: 'Language Review (YDYO)', statuses: ['UNDER_YDYO_REVIEW', 'WAITING_EXAM_RESULT'] },
+  { key: 'BOARD_REVIEW', label: 'Board Review (YGK)',      statuses: ['UNDER_YGK_REVIEW'] },
+  { key: 'DEAN',         label: "Dean's Approval",        statuses: ['PENDING_DEAN_APPROVAL'] },
+  { key: 'FINALIZED',    label: 'Finalized',               statuses: ['ACCEPTED', 'REJECTED'] },
 ];
 
-function getActiveStageIndex(status: string): number {
+const STATUS_MESSAGES: Record<string, string> = {
+  SUBMITTED:             'Pending Document Verification (ÖİDB)',
+  UNDER_OIDB_REVIEW:     "Under Review by Registrar's Office (ÖİDB)",
+  UNDER_YDYO_REVIEW:     'Under Review by School of Foreign Languages',
+  WAITING_EXAM_RESULT:   'Waiting for Language Exam Result',
+  UNDER_YGK_REVIEW:      'Under Review by Faculty Administrative Board',
+  PENDING_DEAN_APPROVAL: "Pending Dean's Approval",
+  ACCEPTED:              'Finalized – Results Announced',
+  REJECTED:              'Finalized – Results Announced',
+  DRAFT:                 'Draft – Not Yet Submitted',
+};
+
+const ESTIMATED_TIMES: Record<string, string> = {
+  SUBMITTED: '3–5 Business Days', UNDER_OIDB_REVIEW: '2–3 Business Days',
+  UNDER_YDYO_REVIEW: '5–7 Business Days', WAITING_EXAM_RESULT: 'Pending Exam',
+  UNDER_YGK_REVIEW: '7–10 Business Days', PENDING_DEAN_APPROVAL: '2–3 Business Days',
+  ACCEPTED: 'Completed', REJECTED: 'Completed',
+};
+
+function getActiveStageIndex(status: string) {
   for (let i = 0; i < STAGES.length; i++) {
     if (STAGES[i].statuses.includes(status)) return i;
   }
   return -1;
 }
-
-const STATUS_MESSAGES: Record<string, string> = {
-  SUBMITTED: 'Pending Document Verification (ÖİDB)',
-  UNDER_OIDB_REVIEW: 'Under Review by Registrar\'s Office (ÖİDB)',
-  UNDER_YDYO_REVIEW: 'Under Review by School of Foreign Languages',
-  WAITING_EXAM_RESULT: 'Waiting for Language Exam Result',
-  UNDER_YGK_REVIEW: 'Under Review by Faculty Administrative Board',
-  PENDING_DEAN_APPROVAL: "Pending Dean's Approval",
-  ACCEPTED: 'Finalized – Results Announced',
-  REJECTED: 'Finalized – Results Announced',
-  DRAFT: 'Draft – Not Yet Submitted',
-};
-
-const ESTIMATED_TIMES: Record<string, string> = {
-  SUBMITTED: '3–5 Business Days',
-  UNDER_OIDB_REVIEW: '2–3 Business Days',
-  UNDER_YDYO_REVIEW: '5–7 Business Days',
-  WAITING_EXAM_RESULT: 'Pending Exam',
-  UNDER_YGK_REVIEW: '7–10 Business Days',
-  PENDING_DEAN_APPROVAL: '2–3 Business Days',
-  ACCEPTED: 'Completed',
-  REJECTED: 'Completed',
-};
 
 export default function ApplicationStatusPage() {
   const navigate = useNavigate();
@@ -52,32 +45,29 @@ export default function ApplicationStatusPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    applicationApi.list()
-      .then((res) => {
-        const data = res.data.data;
-        setApps(data);
-        const active = data.find((a) => !['DRAFT', 'REJECTED', 'ACCEPTED'].includes(a.status))
-          ?? data[0] ?? null;
-        setSelected(active);
-      })
-      .finally(() => setLoading(false));
+    applicationApi.list().then((res) => {
+      const data = res.data.data;
+      setApps(data);
+      const active = data.find((a) => !['DRAFT', 'REJECTED', 'ACCEPTED'].includes(a.status)) ?? data[0] ?? null;
+      setSelected(active);
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     if (!selected) return;
-    applicationApi.timeline(selected.id)
-      .then((res) => setTimeline(res.data.data));
+    applicationApi.timeline(selected.id).then((res) => setTimeline(res.data.data));
   }, [selected?.id]);
 
-  if (loading) return <Spinner />;
+  if (loading) return <div className="p-8"><Spinner /></div>;
 
   if (apps.length === 0) {
     return (
-      <div style={{ maxWidth: 600 }}>
-        <h2 style={s.pageTitle}>Application Status Tracking</h2>
-        <div style={s.emptyCard}>
-          <p style={{ color: '#6b7280', margin: '0 0 16px' }}>You have no active applications.</p>
-          <button onClick={() => navigate('/student/applications/new')} style={s.btn}>
+      <div className="p-6 md:p-10">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Application Status Tracking</h1>
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center max-w-md">
+          <p className="text-gray-500 mb-4">You have no active applications.</p>
+          <button onClick={() => navigate('/student/applications/new')}
+            className="px-5 py-2.5 bg-[#8b1a1a] text-white rounded-lg text-sm font-semibold hover:bg-[#6b1414] transition">
             Apply Now
           </button>
         </div>
@@ -87,66 +77,54 @@ export default function ApplicationStatusPage() {
 
   const activeIdx = selected ? getActiveStageIndex(selected.status) : -1;
   const isFinalized = selected?.status === 'ACCEPTED' || selected?.status === 'REJECTED';
-  const statusMessage = selected ? (STATUS_MESSAGES[selected.status] ?? selected.status) : '';
+  const statusMsg = selected ? (STATUS_MESSAGES[selected.status] ?? selected.status) : '';
 
   return (
-    <div style={{ maxWidth: 860 }}>
-      <h2 style={s.pageTitle}>Application Status Tracking</h2>
-      <p style={s.pageSubtitle}>Monitor your transfer application progress in real-time</p>
+    <div className="p-6 md:p-10">
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">Application Status Tracking</h1>
+      <p className="text-sm text-gray-500 mb-6">Monitor your transfer application progress in real-time</p>
 
       {apps.length > 1 && (
-        <div style={{ marginBottom: 16 }}>
-          <select
-            style={{ ...s.selectInput, maxWidth: 300 }}
-            value={selected?.id}
-            onChange={(e) => {
-              const a = apps.find((ap) => ap.id === Number(e.target.value)) ?? null;
-              setSelected(a);
-            }}
-          >
-            {apps.map((a) => (
-              <option key={a.id} value={a.id}>Application #{a.id} — {a.term} ({a.status})</option>
-            ))}
-          </select>
-        </div>
+        <select
+          className="mb-5 px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white max-w-sm w-full"
+          value={selected?.id}
+          onChange={(e) => setSelected(apps.find((a) => a.id === Number(e.target.value)) ?? null)}
+        >
+          {apps.map((a) => (
+            <option key={a.id} value={a.id}>Application #{a.id} — {a.term} ({a.status})</option>
+          ))}
+        </select>
       )}
 
       {selected && (
-        <>
-          {/* Current Application Status */}
-          <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 24 }}>Current Application Status</h3>
+        <div className="space-y-5">
+          {/* Status card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+            <h3 className="font-bold text-gray-900 text-base mb-6">Current Application Status</h3>
 
-            {/* Timeline pipeline */}
-            <div style={s.pipelineWrapper}>
+            {/* Pipeline */}
+            <div className="flex items-start justify-between relative mb-6 overflow-x-auto pb-2">
               {STAGES.map((stage, idx) => {
                 const isCompleted = idx < activeIdx;
                 const isCurrent = idx === activeIdx;
-                const isPending = idx > activeIdx;
                 return (
-                  <div key={stage.key} style={s.stageItem}>
-                    {/* Connector line */}
+                  <div key={stage.key} className="flex flex-col items-center flex-1 relative min-w-[80px]">
                     {idx > 0 && (
-                      <div style={{
-                        ...s.connector,
-                        background: isCompleted || isCurrent ? PRIMARY : '#d1d5db',
-                      }} />
+                      <div className={`absolute top-5 right-1/2 w-full h-0.5 ${isCompleted || isCurrent ? 'bg-[#8b1a1a]' : 'bg-gray-200'}`} />
                     )}
-                    {/* Circle */}
-                    <div style={{
-                      ...s.circle,
-                      background: isCompleted ? PRIMARY : isCurrent ? '#fff' : '#f3f4f6',
-                      border: isCurrent ? `3px solid ${PRIMARY}` : isCompleted ? `2px solid ${PRIMARY}` : '2px solid #d1d5db',
-                      color: isCompleted ? '#fff' : isCurrent ? PRIMARY : '#9ca3af',
-                    }}>
-                      {isCompleted ? '✓' : isCurrent ? '👥' : '○'}
+                    <div className={`relative z-10 w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-bold transition ${
+                      isCompleted ? 'bg-[#8b1a1a] border-[#8b1a1a] text-white'
+                        : isCurrent ? 'bg-white border-[#8b1a1a] text-[#8b1a1a]'
+                        : 'bg-gray-50 border-gray-200 text-gray-400'
+                    }`}>
+                      {isCompleted ? '✓' : idx + 1}
                     </div>
-                    <div style={{ textAlign: 'center', marginTop: 8, maxWidth: 100 }}>
-                      <div style={{ fontSize: 11, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#111827' : isPending ? '#9ca3af' : '#374151' }}>
+                    <div className="mt-2 text-center">
+                      <p className={`text-[10px] font-semibold leading-tight ${isCurrent ? 'text-gray-900' : 'text-gray-400'}`}>
                         {stage.label}
-                      </div>
-                      {isCompleted && <div style={s.completedLabel}>✓ Complete</div>}
-                      {isCurrent && <div style={s.inProgressLabel}>● In Progress</div>}
+                      </p>
+                      {isCompleted && <p className="text-[9px] text-green-600 mt-0.5">✓ Complete</p>}
+                      {isCurrent && <p className="text-[9px] text-[#8b1a1a] font-bold mt-0.5">● In Progress</p>}
                     </div>
                   </div>
                 );
@@ -154,67 +132,52 @@ export default function ApplicationStatusPage() {
             </div>
 
             {/* Status message */}
-            <div style={s.statusMsg}>
-              <strong>{statusMessage}</strong>
-              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+            <div className="bg-gray-50 rounded-xl p-4 mb-3">
+              <p className="text-sm font-semibold text-gray-800">● {statusMsg}</p>
+              <p className="text-xs text-gray-400 mt-1">
                 Last Updated: {new Date(selected.updatedAt).toLocaleString()}
-              </div>
+              </p>
             </div>
 
-            {/* Admin note (latest timeline entry note) */}
+            {/* Admin note */}
             {timeline.length > 0 && timeline[timeline.length - 1].note && (
-              <div style={s.adminNote}>
-                <span style={{ fontSize: 13, color: '#d97706' }}>ℹ</span>
-                <span style={{ fontSize: 13, color: '#92400e', marginLeft: 8 }}>
-                  {timeline[timeline.length - 1].note}
-                </span>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex gap-3">
+                <span className="text-amber-500 shrink-0">ℹ</span>
+                <div>
+                  <p className="text-xs font-semibold text-amber-800 mb-1">Administrative Note</p>
+                  <p className="text-xs text-amber-700">{timeline[timeline.length - 1].note}</p>
+                </div>
               </div>
             )}
 
-            {/* UC 1.8 4a: Returned for correction */}
-            {selected.status === 'DRAFT' && (
-              <div style={{ marginTop: 16 }}>
-                <button onClick={() => navigate(`/student/applications/${selected.id}`)} style={s.btn}>
-                  Fix Application
-                </button>
-              </div>
-            )}
-
-            {isFinalized && (
-              <div style={{ marginTop: 16 }}>
-                <button onClick={() => navigate('/student/results')} style={s.btn}>
+            <div className="flex gap-3 flex-wrap">
+              {isFinalized && (
+                <button onClick={() => navigate('/student/results')}
+                  className="px-4 py-2 bg-[#8b1a1a] text-white rounded-lg text-sm font-semibold hover:bg-[#6b1414] transition">
                   View Results
                 </button>
-              </div>
-            )}
-
-            <div style={{ marginTop: 16 }}>
-              <button onClick={() => navigate('/student/contact')} style={s.outlineBtn}>
+              )}
+              <button onClick={() => navigate('/student/contact')}
+                className="flex items-center gap-2 px-4 py-2 border border-[#8b1a1a] text-[#8b1a1a] rounded-lg text-sm font-semibold hover:bg-[#8b1a1a]/5 transition">
                 💬 Contact Support
               </button>
             </div>
           </div>
 
           {/* Application History */}
-          <div style={s.card}>
-            <h3 style={{ ...s.cardTitle, marginBottom: 16 }}>Application History</h3>
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+            <h3 className="font-bold text-gray-900 text-base mb-4">Application History</h3>
             {timeline.length === 0 ? (
-              <p style={{ color: '#6b7280', fontSize: 14 }}>No history yet.</p>
+              <p className="text-sm text-gray-400">No history yet.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="space-y-4">
                 {[...timeline].reverse().map((entry) => (
-                  <div key={entry.id} style={s.historyItem}>
-                    <div style={s.historyDot} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: '#111827' }}>
-                        {entry.toStatus.replace(/_/g, ' ')}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
-                        {new Date(entry.changedAt).toLocaleString()}
-                      </div>
-                      {entry.note && (
-                        <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>{entry.note}</div>
-                      )}
+                  <div key={entry.id} className="flex gap-3">
+                    <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5">✓</div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{entry.toStatus.replace(/_/g, ' ')}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{new Date(entry.changedAt).toLocaleString()}</p>
+                      {entry.note && <p className="text-xs text-gray-600 mt-1">{entry.note}</p>}
                     </div>
                   </div>
                 ))}
@@ -223,46 +186,21 @@ export default function ApplicationStatusPage() {
           </div>
 
           {/* Summary cards */}
-          <div style={s.summaryRow}>
-            <SummaryCard icon="🕐" label="Estimated Time" value={ESTIMATED_TIMES[selected.status] ?? '—'} />
-            <SummaryCard icon="📄" label="Documents Status" value="All Verified" />
-            <SummaryCard icon="👥" label="Current Stage" value={STAGES[activeIdx]?.label ?? '—'} />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { icon: '🕐', label: 'Estimated Time', value: ESTIMATED_TIMES[selected.status] ?? '—' },
+              { icon: '📄', label: 'Documents Status', value: 'All Verified', green: true },
+              { icon: '👥', label: 'Current Stage', value: STAGES[activeIdx]?.label ?? '—' },
+            ].map((c) => (
+              <div key={c.label} className="bg-white rounded-xl border border-gray-100 p-5 text-center shadow-sm">
+                <div className="text-2xl mb-2">{c.icon}</div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">{c.label}</p>
+                <p className={`text-sm font-bold ${c.green ? 'text-green-600' : 'text-gray-900'}`}>{c.value}</p>
+              </div>
+            ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
-
-function SummaryCard({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div style={s.summaryCard}>
-      <div style={{ fontSize: 22, marginBottom: 6 }}>{icon}</div>
-      <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginTop: 4 }}>{value}</div>
-    </div>
-  );
-}
-
-const s = {
-  pageTitle: { fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 4px' } as React.CSSProperties,
-  pageSubtitle: { fontSize: 13, color: '#6b7280', margin: '0 0 20px' } as React.CSSProperties,
-  card: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '20px 24px', marginBottom: 20 } as React.CSSProperties,
-  cardTitle: { fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 } as React.CSSProperties,
-  emptyCard: { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '32px 24px', textAlign: 'center' as const },
-  pipelineWrapper: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, position: 'relative' as const },
-  stageItem: { display: 'flex', flexDirection: 'column' as const, alignItems: 'center', flex: 1, position: 'relative' as const },
-  connector: { position: 'absolute' as const, top: 18, right: '50%', width: '100%', height: 3, zIndex: 0 },
-  circle: { width: 38, height: 38, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, zIndex: 1, position: 'relative' as const },
-  completedLabel: { fontSize: 10, color: '#16a34a', marginTop: 2 } as React.CSSProperties,
-  inProgressLabel: { fontSize: 10, color: PRIMARY, marginTop: 2, fontWeight: 700 } as React.CSSProperties,
-  statusMsg: { background: '#f9fafb', borderRadius: 6, padding: '12px 16px', fontSize: 14, color: '#374151' } as React.CSSProperties,
-  adminNote: { background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '10px 14px', marginTop: 12, display: 'flex', alignItems: 'flex-start' } as React.CSSProperties,
-  historyItem: { display: 'flex', alignItems: 'flex-start', gap: 12, paddingBottom: 12, borderBottom: '1px solid #f3f4f6' } as React.CSSProperties,
-  historyDot: { width: 10, height: 10, borderRadius: '50%', background: '#16a34a', marginTop: 4, flexShrink: 0 } as React.CSSProperties,
-  summaryRow: { display: 'flex', gap: 16, flexWrap: 'wrap' as const },
-  summaryCard: { flex: '1 1 160px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '16px 20px', textAlign: 'center' as const } as React.CSSProperties,
-  btn: { padding: '9px 20px', background: PRIMARY, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 14 } as React.CSSProperties,
-  outlineBtn: { padding: '8px 18px', background: '#fff', color: PRIMARY, border: `1.5px solid ${PRIMARY}`, borderRadius: 6, fontWeight: 600, cursor: 'pointer', fontSize: 13 } as React.CSSProperties,
-  selectInput: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', width: '100%' } as React.CSSProperties,
-};
