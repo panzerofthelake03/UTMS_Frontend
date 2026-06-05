@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { adminApi, type AdminApplication } from '../../shared/api/adminApi';
 import { applicationApi, type Document } from '../../shared/api/applicationApi';
 import ApplicationStatusBadge from '../../shared/components/ApplicationStatusBadge';
+import PdfViewerModal from '../../shared/components/PdfViewerModal';
 import Spinner from '../../shared/components/Spinner';
 import DocumentUpload from '../student/components/DocumentUpload';
 
@@ -17,6 +18,9 @@ export default function YdyoReviewPage() {
   const [loading, setLoading] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; title: string } | null>(null);
+  const [pdfLoading, setPdfLoading] = useState<number | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>();
 
   const appId = Number(id);
@@ -51,19 +55,31 @@ export default function YdyoReviewPage() {
     }
   }
 
-  async function handleDownload(doc: Document) {
+  async function handleViewPdf(doc: Document) {
+    setPdfLoading(doc.id);
     setServerError(null);
     try {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
       const res = await applicationApi.downloadDocument(appId, doc.id);
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: doc.mimeType }));
-      const link = window.document.createElement('a');
-      link.href = blobUrl;
-      link.download = doc.originalFilename;
-      link.click();
-      URL.revokeObjectURL(blobUrl);
+      const url = URL.createObjectURL(new Blob([res.data], { type: doc.mimeType || 'application/pdf' }));
+      blobUrlRef.current = url;
+      setViewingDoc({ url, title: doc.originalFilename });
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setServerError(err.response?.data?.error?.message ?? 'Document download failed.');
+      setServerError(err.response?.data?.error?.message ?? 'Document could not be opened.');
+    } finally {
+      setPdfLoading(null);
+    }
+  }
+
+  function closePdfModal() {
+    setViewingDoc(null);
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
     }
   }
 
@@ -102,7 +118,13 @@ export default function YdyoReviewPage() {
                   <td style={td}><ScanBadge status={d.scanStatus} /></td>
                   <td style={td}>{new Date(d.createdAt).toLocaleDateString()}</td>
                   <td style={td}>
-                    <button onClick={() => void handleDownload(d)} style={docBtn}>View PDF</button>
+                    <button
+                      onClick={() => void handleViewPdf(d)}
+                      disabled={pdfLoading === d.id}
+                      style={docBtn}
+                    >
+                      {pdfLoading === d.id ? 'Loading…' : 'View PDF'}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -119,6 +141,13 @@ export default function YdyoReviewPage() {
             onUploaded={(doc) => setDocs((prev) => [...prev, doc])}
           />
         </div>
+      )}
+      {viewingDoc && (
+        <PdfViewerModal
+          title={viewingDoc.title}
+          url={viewingDoc.url}
+          onClose={closePdfModal}
+        />
       )}
       {(app.status === 'UNDER_YDYO_REVIEW' || app.status === 'WAITING_EXAM_RESULT') && (
         <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -1,6 +1,20 @@
 import axiosInstance from './axiosInstance';
 import type { Application } from './applicationApi';
 
+export interface StudentProfile {
+  fullName: string;
+  email: string;
+  nationality: string | null;
+  identityDocumentType: string | null;
+  tcIdentityNumber: string | null;
+  passportNumber: string | null;
+  dateOfBirth: string | null;
+  identitySerialNo: string | null;
+  passportExpirationDate: string | null;
+  currentProgram: string | null;
+  currentUniversity: string | null;
+}
+
 export interface AdminApplication extends Application {
   studentNumber: string;
   studentFirstName: string;
@@ -81,6 +95,9 @@ export const adminApi = {
     axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/take-review`),
   oidbForwardYdyo: (id: number, note: string) =>
     axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/forward-ydyo`, { note }),
+  /** UC 3.2 — full student identity profile for a given application */
+  oidbGetStudentProfile: (id: number) =>
+    axiosInstance.get<{ data: StudentProfile }>(`/api/oidb/applications/${id}/student-profile`),
 
   // YDYO
   ydyoList: () =>
