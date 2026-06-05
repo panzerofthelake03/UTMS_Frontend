@@ -17,6 +17,7 @@ function roleHome(role: UserRole): string {
     case 'ROLE_YDYO': return '/admin/ydyo/applications';
     case 'ROLE_YGK': return '/admin/ygk/applications';
     case 'ROLE_INTIBAK': return '/admin/intibak/applications';
+    case 'ROLE_DEAN': return '/admin/dean/applications';
     case 'ROLE_ADMIN': return '/admin/oidb/applications';
   }
 }

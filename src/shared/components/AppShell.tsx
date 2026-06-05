@@ -153,19 +153,30 @@ function buildNavLinks(role: string): { to: string; label: string; icon: string 
         { to: '/student/contact', label: 'Contact & Support', icon: '🎧' },
       ];
     case 'ROLE_OIDB':
-      return [{ to: '/admin/oidb/applications', label: 'Applications Inbox', icon: '📥' }];
+      return [
+        { to: '/admin/oidb/applications', label: 'Başvuru Kutusu', icon: '📥' },
+        { to: '/admin/oidb/results',      label: 'Başvuru Sonuçları', icon: '📊' },
+      ];
     case 'ROLE_YDYO':
-      return [{ to: '/admin/ydyo/applications', label: 'English Review Queue', icon: '📝' }];
+      return [{ to: '/admin/ydyo/applications', label: 'İngilizce Değerlendirme', icon: '📝' }];
     case 'ROLE_YGK':
-      return [{ to: '/admin/ygk/applications', label: 'Evaluation Queue', icon: '⚖️' }];
+      return [
+        { to: '/admin/ygk/applications', label: 'Değerlendirme Kuyruğu', icon: '⚖️' },
+        { to: '/admin/ygk/placement',    label: 'Yerleştirme Listesi',   icon: '🏆' },
+      ];
     case 'ROLE_INTIBAK':
-      return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' }];
+      return [{ to: '/admin/intibak/applications', label: 'İntibak Kuyruğu', icon: '📋' }];
+    case 'ROLE_DEAN':
+      return [{ to: '/admin/dean/applications', label: 'Onay Kuyruğu', icon: '🏛️' }];
     case 'ROLE_ADMIN':
       return [
-        { to: '/admin/oidb/applications', label: 'OIDB Inbox', icon: '📥' },
-        { to: '/admin/ydyo/applications', label: 'YDYO Queue', icon: '📝' },
-        { to: '/admin/ygk/applications', label: 'YGK Queue', icon: '⚖️' },
-        { to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' },
+        { to: '/admin/oidb/applications', label: 'OIDB Kutusu',         icon: '📥' },
+        { to: '/admin/oidb/results',      label: 'Başvuru Sonuçları',   icon: '📊' },
+        { to: '/admin/ydyo/applications', label: 'YDYO Kuyruğu',        icon: '📝' },
+        { to: '/admin/ygk/applications',  label: 'YGK Kuyruğu',         icon: '⚖️' },
+        { to: '/admin/ygk/placement',     label: 'Yerleştirme Listesi', icon: '🏆' },
+        { to: '/admin/intibak/applications', label: 'İntibak Kuyruğu', icon: '📋' },
+        { to: '/admin/dean/applications', label: 'Dekanlık Onayı',      icon: '🏛️' },
       ];
     default:
       return [];

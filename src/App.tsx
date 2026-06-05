@@ -24,6 +24,10 @@ import YgkQueuePage from './features/admin-ygk/YgkQueuePage';
 import YgkEvaluationPage from './features/admin-ygk/YgkEvaluationPage';
 import IntibakSplitPage from './features/intibak/IntibakSplitPage';
 import IntibakQueuePage from './features/intibak/IntibakQueuePage';
+import DeanQueuePage from './features/admin-dean/DeanQueuePage';
+import DeanApprovalPage from './features/admin-dean/DeanApprovalPage';
+import YgkPlacementPage from './features/admin-ygk/YgkPlacementPage';
+import OidbResultsPage from './features/admin-oidb/OidbResultsPage';
 import ToastContainer from './shared/components/ToastContainer';
 
 export default function App() {
@@ -78,6 +82,25 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route path="/admin/intibak/applications" element={<IntibakQueuePage />} />
                 <Route path="/admin/intibak/applications/:id" element={<IntibakSplitPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_DEAN', 'ROLE_ADMIN']} />}>
+              <Route element={<AppShell />}>
+                <Route path="/admin/dean/applications" element={<DeanQueuePage />} />
+                <Route path="/admin/dean/applications/:id" element={<DeanApprovalPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_YGK', 'ROLE_ADMIN']} />}>
+              <Route element={<AppShell />}>
+                <Route path="/admin/ygk/placement" element={<YgkPlacementPage />} />
+              </Route>
+            </Route>
+
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_OIDB', 'ROLE_ADMIN']} />}>
+              <Route element={<AppShell />}>
+                <Route path="/admin/oidb/results" element={<OidbResultsPage />} />
               </Route>
             </Route>
           </Routes>

@@ -11,10 +11,14 @@ interface Props {
 }
 
 const DOCUMENT_TYPES = [
-  { value: 'ENGLISH_PROFICIENCY', label: 'English Proficiency' },
-  { value: 'TRANSCRIPT', label: 'Transcript' },
-  { value: 'IDENTITY', label: 'Identity Document' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'OSYM_PUAN',          label: 'ÖSYM Puan Belgesi' },
+  { value: 'OGRENCI_BELGESI',    label: 'Öğrenci Belgesi' },
+  { value: 'DERS_KATALOG',       label: 'Ders Kataloğu' },
+  { value: 'IDENTITY',           label: 'Kimlik Belgesi' },
+  { value: 'TRANSCRIPT',         label: 'Transkript' },
+  { value: 'OSYM_YERLESTIRME',   label: 'ÖSYM Yerleştirme Belgesi' },
+  { value: 'ENGLISH_PROFICIENCY', label: 'Yabancı Dil Belgesi' },
+  { value: 'INTIBAK',            label: 'İntibak Belgesi' },
 ];
 
 export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType }: Props) {
