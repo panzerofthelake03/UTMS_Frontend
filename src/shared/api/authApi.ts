@@ -53,6 +53,35 @@ export interface AuthResponse {
   roles: string[];
 }
 
+// --- Password recovery (UC 1.3 + UC 1.4) ---
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  emailFound: boolean;
+  expiresInSeconds: number | null;
+  devVerificationCode: string | null;
+}
+
+export interface VerifyResetCodeRequest {
+  email: string;
+  code: string;
+}
+
+export interface VerifyResetCodeResponse {
+  resetToken: string;
+  expiresInSeconds: number;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export const authApi = {
   captchaChallenge: () =>
     axiosInstance.get<{ data: CaptchaChallengeResponse }>('/api/auth/captcha/challenge'),
@@ -66,4 +95,13 @@ export const authApi = {
     axiosInstance.post<{ data: null }>('/api/auth/register/cancel', data),
   refresh: (refreshToken: string) =>
     axiosInstance.post<{ data: AuthResponse }>('/api/auth/refresh', { refreshToken }),
+  // UC 1.3 - request OTP ("Send Code" / "Resend Code")
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    axiosInstance.post<{ data: ForgotPasswordResponse }>('/api/auth/password/forgot', data),
+  // UC 1.3 - verify OTP ("Verify & Continue")
+  verifyResetCode: (data: VerifyResetCodeRequest) =>
+    axiosInstance.post<{ data: VerifyResetCodeResponse }>('/api/auth/password/verify', data),
+  // UC 1.4 - set new password ("Set Password")
+  resetPassword: (data: ResetPasswordRequest) =>
+    axiosInstance.post<{ data: null }>('/api/auth/password/reset', data),
 };
