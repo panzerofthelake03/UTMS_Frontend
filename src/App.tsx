@@ -13,6 +13,9 @@ import StudentProfilePage from './features/student/ProfilePage';
 import ApplicationListPage from './features/student/ApplicationListPage';
 import ApplicationFormPage from './features/student/ApplicationFormPage';
 import ApplicationDetailPage from './features/student/ApplicationDetailPage';
+import ApplicationStatusPage from './features/student/ApplicationStatusPage';
+import ViewResultsPage from './features/student/ViewResultsPage';
+import ContactPage from './features/student/ContactPage';
 import OidbApplicationListPage from './features/admin-oidb/OidbApplicationListPage';
 import OidbDetailPage from './features/admin-oidb/OidbDetailPage';
 import YdyoQueuePage from './features/admin-ydyo/YdyoQueuePage';
@@ -44,6 +47,9 @@ export default function App() {
                 <Route path="/student/applications" element={<ApplicationListPage />} />
                 <Route path="/student/applications/new" element={<ApplicationFormPage />} />
                 <Route path="/student/applications/:id" element={<ApplicationDetailPage />} />
+                <Route path="/student/status" element={<ApplicationStatusPage />} />
+                <Route path="/student/results" element={<ViewResultsPage />} />
+                <Route path="/student/contact" element={<ContactPage />} />
               </Route>
             </Route>
 

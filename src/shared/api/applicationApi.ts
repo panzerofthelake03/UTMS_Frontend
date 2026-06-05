@@ -6,6 +6,10 @@ export interface Application {
   status: string;
   term: string;
   applicationNote: string | null;
+  targetDepartment: string | null;
+  phone: string | null;
+  address: string | null;
+  englishProficiencyOption: string | null;
   submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,8 +35,22 @@ export interface Document {
   createdAt: string;
 }
 
-export interface CreateApplicationRequest { term: string; applicationNote?: string }
-export interface UpdateApplicationRequest { term?: string; applicationNote?: string }
+export interface CreateApplicationRequest {
+  term: string;
+  applicationNote?: string;
+  targetDepartment?: string;
+  phone?: string;
+  address?: string;
+  englishProficiencyOption?: string;
+}
+export interface UpdateApplicationRequest {
+  term?: string;
+  applicationNote?: string;
+  targetDepartment?: string;
+  phone?: string;
+  address?: string;
+  englishProficiencyOption?: string;
+}
 
 export const applicationApi = {
   list: () =>
