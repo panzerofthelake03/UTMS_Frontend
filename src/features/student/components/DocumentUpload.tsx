@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { applicationApi, type Document } from '../../../shared/api/applicationApi';
 
-const PRIMARY = '#8b1a1a';
 const MAX_SIZE_MB = 2;
 const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
@@ -149,33 +148,12 @@ const labelBtn: React.CSSProperties = {
   display: 'inline-block',
   marginTop: 8,
   padding: '8px 16px',
-  background: '#1d3c6e',
+  background: '#8b1a1a',
   color: '#fff',
-  borderRadius: 4,
+  borderRadius: 6,
   cursor: 'pointer',
   fontSize: 13,
   fontWeight: 600,
-};
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginTop: 4,
-  marginBottom: 6,
-  fontSize: 13,
-  fontWeight: 600,
-};
-const selectStyle: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 320,
-  padding: '8px 10px',
-  border: '1px solid #d1d5db',
-  borderRadius: 4,
-  fontSize: 13,
-};
-const lockedTypeBox: React.CSSProperties = {
-  marginTop: 4,
-  marginBottom: 6,
-  fontSize: 12,
-  color: '#374151',
 };
 const compactBtn: React.CSSProperties = {
   display: 'inline-block',
