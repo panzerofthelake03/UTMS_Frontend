@@ -8,6 +8,7 @@ interface Props {
   applicationId: number;
   onUploaded: (doc: Document) => void;
   lockedDocumentType?: string;
+  compact?: boolean;
 }
 
 const DOCUMENT_TYPES = [
@@ -21,7 +22,7 @@ const DOCUMENT_TYPES = [
   { value: 'INTIBAK',            label: 'İntibak Belgesi' },
 ];
 
-export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType }: Props) {
+export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType, compact = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [documentType, setDocumentType] = useState(lockedDocumentType ?? '');
   const [clientError, setClientError] = useState<string | null>(null);
@@ -64,6 +65,32 @@ export default function DocumentUpload({ applicationId, onUploaded, lockedDocume
     }
   }
 
+  const uploadId = `doc-upload-${lockedDocumentType ?? 'free'}`;
+
+  if (compact) {
+    return (
+      <div style={{ flexShrink: 0 }}>
+        <label htmlFor={uploadId} style={compactBtn}>
+          {uploading ? '...' : 'PDF Yükle'}
+        </label>
+        <input
+          id={uploadId}
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          onChange={handleChange}
+          disabled={uploading}
+          style={{ display: 'none' }}
+        />
+        {(clientError || serverError) && (
+          <div style={{ ...errStyle, marginTop: 4, maxWidth: 200, fontSize: 11 }}>
+            {clientError ?? serverError}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       {lockedDocumentType ? (
@@ -88,11 +115,11 @@ export default function DocumentUpload({ applicationId, onUploaded, lockedDocume
         </>
       )}
 
-      <label htmlFor="doc-upload" style={labelBtn}>
+      <label htmlFor={uploadId} style={labelBtn}>
         {uploading ? 'Uploading...' : 'Choose PDF to upload'}
       </label>
       <input
-        id="doc-upload"
+        id={uploadId}
         ref={inputRef}
         type="file"
         accept=".pdf,application/pdf"
@@ -137,6 +164,17 @@ const lockedTypeBox: React.CSSProperties = {
   marginBottom: 6,
   fontSize: 12,
   color: '#374151',
+};
+const compactBtn: React.CSSProperties = {
+  display: 'inline-block',
+  padding: '6px 14px',
+  background: '#8b1a1a',
+  color: '#fff',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontSize: 12,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
 };
 const errStyle: React.CSSProperties = {
   marginTop: 8,

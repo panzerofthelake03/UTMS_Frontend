@@ -12,6 +12,7 @@ interface FormValues {
   adjustmentReason: string;
   decision: string;
   evaluatorNote: string;
+  deptConditionsVerified: boolean;
 }
 
 export default function YgkEvaluationPage() {

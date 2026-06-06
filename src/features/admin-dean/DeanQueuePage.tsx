@@ -19,7 +19,7 @@ export default function DeanQueuePage() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="max-w-4xl">
+    <div style={{ padding: '2rem' }}>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Dekanlık Onay Kuyruğu</h2>
       <p className="text-sm text-gray-500 mb-5">YGK tarafından kabul edilen başvurular nihai onay bekliyor.</p>
 

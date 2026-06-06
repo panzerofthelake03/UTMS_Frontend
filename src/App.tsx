@@ -27,6 +27,7 @@ import IntibakQueuePage from './features/intibak/IntibakQueuePage';
 import DeanQueuePage from './features/admin-dean/DeanQueuePage';
 import DeanApprovalPage from './features/admin-dean/DeanApprovalPage';
 import YgkPlacementPage from './features/admin-ygk/YgkPlacementPage';
+import YgkDeptConditionsPage from './features/admin-ygk/YgkDeptConditionsPage';
 import OidbResultsPage from './features/admin-oidb/OidbResultsPage';
 import ToastContainer from './shared/components/ToastContainer';
 
@@ -75,6 +76,7 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route path="/admin/ygk/applications" element={<YgkQueuePage />} />
                 <Route path="/admin/ygk/applications/:id" element={<YgkEvaluationPage />} />
+                <Route path="/admin/ygk/applications/:id/dept-conditions" element={<YgkDeptConditionsPage />} />
               </Route>
             </Route>
 
