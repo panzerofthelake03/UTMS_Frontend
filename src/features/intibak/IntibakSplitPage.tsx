@@ -135,19 +135,19 @@ export default function IntibakSplitPage() {
         if (mapping.status === 'EQUIVALENT') {
           await adminApi.intibakDecideExemption(appId, exemptionId, {
             decision: 'EXEMPT',
-            decisionNote: 'YGK tarafından eşdeğer olarak doğrulandı',
+            decisionNote: 'Equivalent course — verified by YGK',
           });
         } else if (mapping.status === 'NOT_EQUIVALENT') {
           await adminApi.intibakDecideExemption(appId, exemptionId, {
             decision: 'REJECTED',
-            decisionNote: 'Eşdeğer değil',
+            decisionNote: 'Not equivalent',
           });
         }
       }
       navigate(-1);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setSaveError(err.response?.data?.error?.message ?? 'Kayıt başarısız.');
+      setSaveError(err.response?.data?.error?.message ?? 'Save failed.');
     } finally {
       setSaving(false);
     }
@@ -167,13 +167,13 @@ export default function IntibakSplitPage() {
         <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>
           <button onClick={() => navigate(-1)}
             style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0, fontSize: 12 }}>
-            Öğrenci İnceleme
+            Student Review
           </button>
           <span style={{ margin: '0 5px', color: '#d1d5db' }}>›</span>
-          <span style={{ color: '#374151', fontWeight: 600 }}>İntibak Hazırla</span>
+          <span style={{ color: '#374151', fontWeight: 600 }}>Prepare Credit Transfer</span>
         </div>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111' }}>
-          İntibak Çalışma Sayfası: {studentName} &mdash; {dept}
+          Credit Transfer Worksheet: {studentName} &mdash; {dept}
         </h2>
       </div>
 
@@ -183,7 +183,7 @@ export default function IntibakSplitPage() {
         {/* ════ LEFT: Curriculum Matching ════ */}
         <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb', overflow: 'hidden' }}>
           <div style={{ padding: '16px 24px 0', flexShrink: 0 }}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Müfredat Eşleştirme</h3>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Curriculum Matching</h3>
           </div>
 
           {/* Table */}
@@ -198,7 +198,7 @@ export default function IntibakSplitPage() {
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
                 <tr style={{ background: '#f9fafb' }}>
-                  {['Hedef Ders (Müfredatımız)', 'Hedef AKTS', 'Eşdeğer Kaynak Ders', 'Not', 'Durum'].map((h) => (
+                  {['Target Course (Our Curriculum)', 'Target ECTS', 'Equivalent Source Course', 'Source Grade', 'Status'].map((h) => (
                     <th key={h} style={thStyle}>{h}</th>
                   ))}
                 </tr>
@@ -225,7 +225,7 @@ export default function IntibakSplitPage() {
                           onChange={(e) => handleSelect(tc.code, e.target.value)}
                           style={selectStyle}
                         >
-                          <option value="">Transkriptten ders seçin...</option>
+                          <option value="">Select course from transcript...</option>
                           {MOCK_TRANSCRIPT.map((sc) => (
                             <option key={sc.code} value={sc.code}>
                               {sc.code} – {sc.name}
@@ -241,7 +241,7 @@ export default function IntibakSplitPage() {
                       <td style={tdStyle}>
                         {m.sourceCode ? (
                           <button onClick={() => toggleEquivalent(tc.code)} style={m.status === 'EQUIVALENT' ? badgeEquivalent : badgePending}>
-                            {m.status === 'EQUIVALENT' ? 'Eşdeğer' : 'Bekliyor'}
+                            {m.status === 'EQUIVALENT' ? 'Equivalent' : 'Pending'}
                           </button>
                         ) : (
                           <span style={{ fontSize: 11, color: '#e5e7eb' }}>—</span>
@@ -257,17 +257,17 @@ export default function IntibakSplitPage() {
           {/* ── Bottom bar ── */}
           <div style={{ flexShrink: 0, borderTop: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
             <div style={{ fontSize: 13, color: '#374151' }}>
-              <strong>Toplam Muaf Kredi: {totalExemptedCredits}</strong>
+              <strong>Total Exempted Credits: {totalExemptedCredits}</strong>
               <span style={{ margin: '0 14px', color: '#d1d5db' }}>|</span>
-              <strong>Toplam AKTS: {totalEcts}</strong>
+              <strong>Total ECTS: {totalEcts}</strong>
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               {saveError && (
                 <span style={{ fontSize: 12, color: '#dc2626', maxWidth: 220 }}>{saveError}</span>
               )}
-              <button onClick={() => navigate(-1)} style={cancelBtn}>İptal</button>
+              <button onClick={() => navigate(-1)} style={cancelBtn}>Cancel</button>
               <button onClick={() => void handleSave()} disabled={saving} style={saveBtn}>
-                {saving ? 'Kaydediliyor…' : 'Kaydet & İntibakı Tamamla'}
+                {saving ? 'Saving…' : 'Save & Finalize'}
               </button>
             </div>
           </div>
@@ -275,24 +275,24 @@ export default function IntibakSplitPage() {
 
         {/* ════ RIGHT: Student Transcript ════ */}
         <div style={{ flex: '0 0 38%', overflowY: 'auto', background: '#f9fafb', padding: '16px 18px' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Öğrenci Transkripti</h3>
+          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Student Transcript</h3>
 
           {/* University header */}
           <div style={transcriptCard}>
             <div style={{ fontWeight: 800, fontSize: 13, color: '#111', textAlign: 'center', letterSpacing: '0.03em' }}>
               ANKARA UNIVERSITY
             </div>
-            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', marginTop: 2 }}>Mühendislik Fakültesi</div>
+            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', marginTop: 2 }}>Faculty of Engineering</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', textAlign: 'center', marginTop: 2, letterSpacing: '0.05em' }}>
-              RESMİ TRANSKRİPT
+              OFFICIAL TRANSCRIPT
             </div>
           </div>
 
           {/* Student info */}
           <div style={{ ...transcriptCard, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
             {[
-              ['Öğrenci Adı', studentName],
-              ['Öğrenci No',  app?.studentNumber ?? 'S20260001'],
+              ['Student Name', studentName],
+              ['Student No',   app?.studentNumber ?? 'S20260001'],
               ['Program',      dept],
             ].map(([label, val]) => (
               <>
@@ -319,7 +319,7 @@ export default function IntibakSplitPage() {
                   </div>
                 ))}
                 <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af', textAlign: 'right', fontStyle: 'italic' }}>
-                  Dönem AKTS: {semEcts}
+                  Semester ECTS: {semEcts}
                 </div>
               </div>
             );

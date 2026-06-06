@@ -13,16 +13,16 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Taslak',
-  SUBMITTED: 'Gönderildi',
-  UNDER_OIDB_REVIEW: 'OİDB İncelemesinde',
-  FROM_YGK: 'YGK\'dan Döndü',
-  UNDER_YDYO_REVIEW: 'YDYO İncelemesinde',
-  WAITING_EXAM_RESULT: 'Sınav Bekleniyor',
-  UNDER_YGK_REVIEW: 'YGK İncelemesinde',
-  PENDING_DEAN_APPROVAL: 'Dekanlık Onayında',
-  ACCEPTED: 'Kabul Edildi',
-  REJECTED: 'Reddedildi',
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_OIDB_REVIEW: 'OIDB Review',
+  FROM_YGK: 'Returned from YGK',
+  UNDER_YDYO_REVIEW: 'YDYO Review',
+  WAITING_EXAM_RESULT: 'Awaiting Exam',
+  UNDER_YGK_REVIEW: 'YGK Review',
+  PENDING_DEAN_APPROVAL: 'Pending Dean Approval',
+  ACCEPTED: 'Accepted',
+  REJECTED: 'Rejected',
 };
 
 export default function ApplicationStatusBadge({ status }: { status: string }) {

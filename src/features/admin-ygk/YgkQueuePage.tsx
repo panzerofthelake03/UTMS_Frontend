@@ -65,11 +65,11 @@ export default function YgkQueuePage() {
 
     const langScore = ev?.languageScore ?? null;
     if (langScore === null || (app.yksScore ?? null) === null) {
-      setRow(app.id, { error: 'YKS puanı henüz kaydedilmemiş. OİDB\'ye geri gönderin.' });
+      setRow(app.id, { error: 'YKS score not yet recorded. Send back to OIDB.' });
       return;
     }
     if (decision === 'ACCEPTED' && !ev?.deptConditionsVerified) {
-      setRow(app.id, { error: 'Kabul için önce bölüm koşullarını doğrulamanız gerekiyor.' });
+      setRow(app.id, { error: 'Dept. conditions must be verified before accepting.' });
       return;
     }
 
@@ -84,7 +84,7 @@ export default function YgkQueuePage() {
       setApps((prev) => prev.filter((a) => a.id !== app.id));
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setRow(app.id, { submitting: false, error: err.response?.data?.error?.message ?? 'İşlem başarısız.' });
+      setRow(app.id, { submitting: false, error: err.response?.data?.error?.message ?? 'Operation failed.' });
     }
   }
 
@@ -95,7 +95,7 @@ export default function YgkQueuePage() {
       setApps((prev) => prev.filter((a) => a.id !== app.id));
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setRow(app.id, { sendingBack: false, error: err.response?.data?.error?.message ?? 'Geri gönderme başarısız.' });
+      setRow(app.id, { sendingBack: false, error: err.response?.data?.error?.message ?? 'Send back failed.' });
     }
   }
 
@@ -104,14 +104,14 @@ export default function YgkQueuePage() {
   return (
     <div style={{ padding: '2rem' }}>
       <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>Transfer Değerlendirme Tablosu</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111' }}>Transfer Evaluation Board</h2>
         <p style={{ margin: '4px 0 0', fontSize: 14, color: '#6b7280' }}>
-          Öğrenci transfer başvurularını inceleyin ve onaylayın.
+          Review and evaluate student transfer applications.
         </p>
       </div>
 
       {apps.length === 0 ? (
-        <EmptyState message="Değerlendirilecek başvuru yok." />
+        <EmptyState message="No applications pending evaluation." />
       ) : (
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', width: '100%' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, tableLayout: 'fixed' }}>
@@ -126,7 +126,7 @@ export default function YgkQueuePage() {
             </colgroup>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['Öğrenci Bilgisi', 'GNO', 'YKS Puanı', 'Bölüm Koşulları', 'Toplam Puan', 'İntibak', 'Karar'].map((h) => (
+                {['Student', 'GPA', 'YKS Score', 'Dept. Conditions', 'Total Score', 'Credit Transfer', 'Decision'].map((h) => (
                   <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
@@ -166,7 +166,7 @@ export default function YgkQueuePage() {
                           {Number(app.yksScore).toFixed(2)}
                         </span>
                       ) : (
-                        <span style={{ fontSize: 11, color: '#f97316', fontStyle: 'italic' }}>Puan girilmemiş</span>
+                        <span style={{ fontSize: 11, color: '#f97316', fontStyle: 'italic' }}>Score not entered</span>
                       )}
                     </td>
 
@@ -186,7 +186,7 @@ export default function YgkQueuePage() {
                           color: deptVerified ? '#15803d' : '#c2410c',
                         }}
                       >
-                        {deptVerified ? '✓ Doğrulandı' : 'Koşulları Kontrol Et'}
+                        {deptVerified ? '✓ Verified' : 'Check Conditions'}
                       </button>
                     </td>
 
@@ -212,7 +212,7 @@ export default function YgkQueuePage() {
                         onClick={() => navigate(`/admin/intibak/applications/${app.id}`)}
                         style={{ background: 'none', border: 'none', color: PRIMARY, fontWeight: 600, fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
                       >
-                        İntibak Hazırla
+                        Prepare Credit Transfer
                       </button>
                     </td>
 
@@ -227,23 +227,23 @@ export default function YgkQueuePage() {
                           onClick={() => void submitDecision(app, 'ACCEPTED')}
                           style={{ ...decisionBtn, background: '#16a34a', opacity: row.submitting ? 0.6 : 1 }}
                         >
-                          Kabul
+                          Accept
                         </button>
                         <button
                           disabled={row.submitting || row.sendingBack}
                           onClick={() => void submitDecision(app, 'REJECTED')}
                           style={{ ...decisionBtn, background: '#dc2626', opacity: row.submitting ? 0.6 : 1 }}
                         >
-                          Reddet
+                          Reject
                         </button>
                         {yksScore === null && (
                           <button
                             disabled={row.sendingBack || row.submitting}
                             onClick={() => void sendBackToOidb(app)}
                             style={{ ...decisionBtn, background: '#6b7280', fontSize: 11, opacity: row.sendingBack ? 0.6 : 1 }}
-                            title="YKS puanı eksik — OİDB'ye geri gönder"
+                            title="YKS score missing — send back to OIDB"
                           >
-                            {row.sendingBack ? '...' : 'OİDB\'ye Gönder'}
+                            {row.sendingBack ? '...' : 'Send to OIDB'}
                           </button>
                         )}
                       </div>
@@ -266,9 +266,9 @@ export default function YgkQueuePage() {
                 border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13,
                 cursor: apps.length === 0 ? 'pointer' : 'not-allowed',
               }}
-              title={apps.length > 0 ? `${apps.length} başvuru henüz değerlendirilmedi` : 'Yerleştirme listesine git'}
+              title={apps.length > 0 ? `${apps.length} application(s) not yet evaluated` : 'Go to placement list'}
             >
-              Dekanlık Ofisine Gönder
+              Send to Dean's Office
             </button>
           </div>
         </div>

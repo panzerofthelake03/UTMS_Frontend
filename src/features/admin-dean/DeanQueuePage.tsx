@@ -20,8 +20,8 @@ export default function DeanQueuePage() {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Dekanlık Onay Kuyruğu</h2>
-      <p className="text-sm text-gray-500 mb-5">YGK tarafından kabul edilen başvurular nihai onay bekliyor.</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Dean Approval Queue</h2>
+      <p className="text-sm text-gray-500 mb-5">Applications approved by YGK are awaiting final approval.</p>
 
       {apps.length === 0 ? (
         <EmptyState message="No applications pending dean approval." />
