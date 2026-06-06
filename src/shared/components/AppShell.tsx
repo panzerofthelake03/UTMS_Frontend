@@ -144,8 +144,9 @@ function buildNavLinks(role: string): { to: string; label: string; icon: string 
     case 'ROLE_OIDB':
       return [
         { to: '/admin/oidb/applications',      label: 'Applications Inbox',  icon: '📥' },
-        { to: '/admin/oidb/secondary-review',  label: 'Secondary Review',  icon: '🔍' },
-        { to: '/admin/oidb/results',           label: 'Results',           icon: '📋' },
+        { to: '/admin/oidb/secondary-review',  label: 'Secondary Review',    icon: '🔍' },
+        { to: '/admin/oidb/results',           label: 'Results',             icon: '📋' },
+        { to: '/admin/oidb/tickets',           label: 'Support Tickets',     icon: '🎫' },
       ];
     case 'ROLE_YDYO':
       return [{ to: '/admin/ydyo/applications', label: 'Students', icon: '📝' }];
@@ -158,12 +159,13 @@ function buildNavLinks(role: string): { to: string; label: string; icon: string 
       return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' }];
     case 'ROLE_ADMIN':
       return [
-        { to: '/admin/oidb/applications',     label: 'OIDB Inbox',          icon: '📥' },
+        { to: '/admin/oidb/applications',     label: 'OIDB Inbox',        icon: '📥' },
         { to: '/admin/oidb/secondary-review', label: 'Secondary Review',  icon: '🔍' },
-        { to: '/admin/ydyo/applications',     label: 'YDYO Queue',          icon: '📝' },
-        { to: '/admin/ygk/applications',      label: 'YGK Queue',           icon: '⚖️' },
+        { to: '/admin/oidb/tickets',          label: 'Support Tickets',   icon: '🎫' },
+        { to: '/admin/ydyo/applications',     label: 'YDYO Queue',        icon: '📝' },
+        { to: '/admin/ygk/applications',      label: 'YGK Queue',         icon: '⚖️' },
         { to: '/admin/ygk/placement',         label: 'Placement List',    icon: '📊' },
-        { to: '/admin/intibak/applications',  label: 'Intibak Queue',       icon: '📋' },
+        { to: '/admin/intibak/applications',  label: 'Intibak Queue',     icon: '📋' },
       ];
     default:
       return [];

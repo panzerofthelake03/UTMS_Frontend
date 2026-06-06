@@ -30,6 +30,7 @@ import YgkPlacementPage from './features/admin-ygk/YgkPlacementPage';
 import YgkDeptConditionsPage from './features/admin-ygk/YgkDeptConditionsPage';
 import OidbResultsPage from './features/admin-oidb/OidbResultsPage';
 import OidbSecondaryReviewPage from './features/admin-oidb/OidbSecondaryReviewPage';
+import OidbTicketsPage from './features/admin-oidb/OidbTicketsPage';
 import ToastContainer from './shared/components/ToastContainer';
 
 export default function App() {
@@ -63,6 +64,7 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route path="/admin/oidb/applications" element={<OidbApplicationListPage />} />
                 <Route path="/admin/oidb/applications/:id" element={<OidbDetailPage />} />
+                <Route path="/admin/oidb/tickets" element={<OidbTicketsPage />} />
               </Route>
             </Route>
 

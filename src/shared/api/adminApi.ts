@@ -99,6 +99,18 @@ export interface CourseExemption {
   createdAt: string;
 }
 
+export interface SupportTicket {
+  id: number;
+  subject: string;
+  category: string;
+  message: string;
+  ticketStatus: string;
+  createdAt: string;
+  studentFullName: string;
+  studentEmail: string;
+  studentNumber: string;
+}
+
 export const adminApi = {
   // OIDB
   intibakQueueList: () =>
@@ -165,6 +177,12 @@ export const adminApi = {
   // OIDB Results (UC 5.3)
   oidbResults: () =>
     axiosInstance.get<{ data: AdminApplication[] }>('/api/oidb/results'),
+
+  // Support Tickets (OIDB)
+  oidbListTickets: () =>
+    axiosInstance.get<{ data: SupportTicket[] }>('/api/support/tickets'),
+  oidbUpdateTicketStatus: (id: number, status: string) =>
+    axiosInstance.put<{ data: SupportTicket }>(`/api/support/tickets/${id}/status`, { status }),
 
   // Intibak
   intibakListExemptions: (id: number) =>
