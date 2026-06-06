@@ -121,7 +121,8 @@ export default function YdyoQueuePage() {
                       <td className="px-5 py-4">
                         <button
                           onClick={() => navigate(`/admin/ydyo/applications/${a.id}`)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1d3c6e] hover:bg-[#16305a] text-white text-xs font-semibold rounded-lg transition"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition hover:opacity-85"
+                          style={{ background: '#8b1a1a' }}
                         >
                           📄 Check Proficiency
                         </button>

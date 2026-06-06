@@ -29,6 +29,7 @@ import DeanApprovalPage from './features/admin-dean/DeanApprovalPage';
 import YgkPlacementPage from './features/admin-ygk/YgkPlacementPage';
 import YgkDeptConditionsPage from './features/admin-ygk/YgkDeptConditionsPage';
 import OidbResultsPage from './features/admin-oidb/OidbResultsPage';
+import OidbSecondaryReviewPage from './features/admin-oidb/OidbSecondaryReviewPage';
 import ToastContainer from './shared/components/ToastContainer';
 
 export default function App() {
@@ -103,6 +104,7 @@ export default function App() {
             <Route element={<ProtectedRoute allowedRoles={['ROLE_OIDB', 'ROLE_ADMIN']} />}>
               <Route element={<AppShell />}>
                 <Route path="/admin/oidb/results" element={<OidbResultsPage />} />
+                <Route path="/admin/oidb/secondary-review" element={<OidbSecondaryReviewPage />} />
               </Route>
             </Route>
           </Routes>

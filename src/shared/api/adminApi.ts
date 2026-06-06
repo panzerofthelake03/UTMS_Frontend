@@ -111,6 +111,12 @@ export const adminApi = {
     axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/take-review`),
   oidbForwardYdyo: (id: number, note: string) =>
     axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/forward-ydyo`, { note }),
+  oidbReject: (id: number, note: string) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/reject`, { note }),
+  oidbSecondaryReviewList: () =>
+    axiosInstance.get<{ data: AdminApplication[] }>('/api/oidb/secondary-review'),
+  oidbSecondaryReject: (id: number, note: string) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/oidb/applications/${id}/secondary-reject`, { note }),
   /** UC 3.2 — full student identity profile for a given application */
   oidbGetStudentProfile: (id: number) =>
     axiosInstance.get<{ data: StudentProfile }>(`/api/oidb/applications/${id}/student-profile`),
@@ -140,6 +146,9 @@ export const adminApi = {
     axiosInstance.put<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/dept-conditions`, { verified }),
   ygkSendBackToOidb: (id: number) =>
     axiosInstance.post<{ data: AdminApplication }>(`/api/ygk/applications/${id}/send-back-to-oidb`),
+
+  ygkFinalizeList: () =>
+    axiosInstance.post<{ data: number }>('/api/ygk/finalize-list'),
 
   // Dean (UC 4.1)
   deanList: () =>
