@@ -27,6 +27,7 @@ import IntibakQueuePage from './features/intibak/IntibakQueuePage';
 import DeanQueuePage from './features/admin-dean/DeanQueuePage';
 import DeanApprovalPage from './features/admin-dean/DeanApprovalPage';
 import YgkPlacementPage from './features/admin-ygk/YgkPlacementPage';
+import YgkDeptConditionsPage from './features/admin-ygk/YgkDeptConditionsPage';
 import OidbResultsPage from './features/admin-oidb/OidbResultsPage';
 import OidbSecondaryReviewPage from './features/admin-oidb/OidbSecondaryReviewPage';
 import ToastContainer from './shared/components/ToastContainer';
@@ -76,10 +77,11 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route path="/admin/ygk/applications" element={<YgkQueuePage />} />
                 <Route path="/admin/ygk/applications/:id" element={<YgkEvaluationPage />} />
+                <Route path="/admin/ygk/applications/:id/dept-conditions" element={<YgkDeptConditionsPage />} />
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_INTIBAK', 'ROLE_ADMIN']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_INTIBAK', 'ROLE_YGK', 'ROLE_ADMIN']} />}>
               <Route element={<AppShell />}>
                 <Route path="/admin/intibak/applications" element={<IntibakQueuePage />} />
                 <Route path="/admin/intibak/applications/:id" element={<IntibakSplitPage />} />

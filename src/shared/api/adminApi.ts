@@ -35,6 +35,7 @@ export interface AdminApplication extends Application {
   department: string;
   faculty: string;
   gpa: number | null;
+  yksScore: number | null;
 }
 
 export interface EnglishReviewRequest {
@@ -49,6 +50,7 @@ export interface EvaluationRequest {
   adjustmentReason?: string;
   decision: string;
   evaluatorNote?: string;
+  deptConditionsVerified: boolean;
 }
 
 export interface EvaluationResponse {
@@ -61,6 +63,8 @@ export interface EvaluationResponse {
   ydyoNote: string;
   createdAt: string;
   updatedAt: string;
+  deptConditionsVerified: boolean;
+  languageScore: number | null;
 }
 
 export interface CourseExemptionRequest {
@@ -136,6 +140,12 @@ export const adminApi = {
     axiosInstance.get<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/evaluation`),
   ygkEvaluate: (id: number, data: EvaluationRequest) =>
     axiosInstance.post<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/evaluate`, data),
+  ygkGetStudentProfile: (id: number) =>
+    axiosInstance.get<{ data: StudentProfile }>(`/api/ygk/applications/${id}/student-profile`),
+  ygkSaveDeptConditions: (id: number, verified: boolean) =>
+    axiosInstance.put<{ data: EvaluationResponse }>(`/api/ygk/applications/${id}/dept-conditions`, { verified }),
+  ygkSendBackToOidb: (id: number) =>
+    axiosInstance.post<{ data: AdminApplication }>(`/api/ygk/applications/${id}/send-back-to-oidb`),
 
   ygkFinalizeList: () =>
     axiosInstance.post<{ data: number }>('/api/ygk/finalize-list'),

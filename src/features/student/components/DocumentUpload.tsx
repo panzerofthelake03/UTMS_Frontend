@@ -9,6 +9,7 @@ interface Props {
   applicationId: number;
   onUploaded: (doc: Document) => void;
   lockedDocumentType?: string;
+  compact?: boolean;
 }
 
 const DOCUMENT_TYPES = [
@@ -22,7 +23,7 @@ const DOCUMENT_TYPES = [
   { value: 'INTIBAK',             label: 'Credit Transfer Document' },
 ];
 
-export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType }: Props) {
+export default function DocumentUpload({ applicationId, onUploaded, lockedDocumentType, compact = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [documentType, setDocumentType] = useState(lockedDocumentType ?? '');
   const [clientError, setClientError] = useState<string | null>(null);
@@ -65,6 +66,32 @@ export default function DocumentUpload({ applicationId, onUploaded, lockedDocume
     }
   }
 
+  const uploadId = `doc-upload-${lockedDocumentType ?? 'free'}`;
+
+  if (compact) {
+    return (
+      <div style={{ flexShrink: 0 }}>
+        <label htmlFor={uploadId} style={compactBtn}>
+          {uploading ? '...' : 'PDF Yükle'}
+        </label>
+        <input
+          id={uploadId}
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf"
+          onChange={handleChange}
+          disabled={uploading}
+          style={{ display: 'none' }}
+        />
+        {(clientError || serverError) && (
+          <div style={{ ...errStyle, marginTop: 4, maxWidth: 200, fontSize: 11 }}>
+            {clientError ?? serverError}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {lockedDocumentType ? (
@@ -91,19 +118,11 @@ export default function DocumentUpload({ applicationId, onUploaded, lockedDocume
         </div>
       )}
 
-      <label
-        htmlFor="doc-upload"
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg cursor-pointer w-fit transition-opacity hover:opacity-85"
-        style={{ background: uploading ? '#6b7280' : PRIMARY }}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-        </svg>
-        {uploading ? 'Uploading…' : 'Choose PDF to upload'}
+      <label htmlFor={uploadId} style={labelBtn}>
+        {uploading ? 'Uploading...' : 'Choose PDF to upload'}
       </label>
       <input
-        id="doc-upload"
+        id={uploadId}
         ref={inputRef}
         type="file"
         accept=".pdf,application/pdf"
@@ -125,3 +144,55 @@ export default function DocumentUpload({ applicationId, onUploaded, lockedDocume
     </div>
   );
 }
+
+const labelBtn: React.CSSProperties = {
+  display: 'inline-block',
+  marginTop: 8,
+  padding: '8px 16px',
+  background: '#1d3c6e',
+  color: '#fff',
+  borderRadius: 4,
+  cursor: 'pointer',
+  fontSize: 13,
+  fontWeight: 600,
+};
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  marginTop: 4,
+  marginBottom: 6,
+  fontSize: 13,
+  fontWeight: 600,
+};
+const selectStyle: React.CSSProperties = {
+  width: '100%',
+  maxWidth: 320,
+  padding: '8px 10px',
+  border: '1px solid #d1d5db',
+  borderRadius: 4,
+  fontSize: 13,
+};
+const lockedTypeBox: React.CSSProperties = {
+  marginTop: 4,
+  marginBottom: 6,
+  fontSize: 12,
+  color: '#374151',
+};
+const compactBtn: React.CSSProperties = {
+  display: 'inline-block',
+  padding: '6px 14px',
+  background: '#8b1a1a',
+  color: '#fff',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontSize: 12,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+};
+const errStyle: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 12,
+  color: '#b91c1c',
+  background: '#fef2f2',
+  padding: '6px 10px',
+  borderRadius: 4,
+};

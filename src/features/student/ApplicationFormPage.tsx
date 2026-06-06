@@ -5,6 +5,16 @@ import { integrationApi } from '../../shared/api/integrationApi';
 import DocumentUpload from './components/DocumentUpload';
 import type { Document } from '../../shared/api/applicationApi';
 
+const OTHER_DOCUMENT_TYPES = [
+  { value: 'OSYM_PUAN',        label: 'ÖSYM Puan Belgesi',         required: true },
+  { value: 'OGRENCI_BELGESI',  label: 'Öğrenci Belgesi',           required: true },
+  { value: 'DERS_KATALOG',     label: 'Ders Kataloğu',             required: true },
+  { value: 'IDENTITY',         label: 'Kimlik Belgesi',            required: true },
+  { value: 'TRANSCRIPT',       label: 'Transkript',                required: true },
+  { value: 'OSYM_YERLESTIRME', label: 'ÖSYM Yerleştirme Belgesi', required: false },
+  { value: 'INTIBAK',          label: 'İntibak Belgesi',           required: false },
+];
+
 const TARGET_DEPARTMENTS = [
   'Computer Engineering', 'Electrical & Electronics Engineering',
   'Mechanical Engineering', 'Civil Engineering', 'Chemical Engineering',
@@ -27,6 +37,7 @@ export default function ApplicationFormPage() {
   const [confirmed, setConfirmed] = useState(false);
   const [draftId, setDraftId] = useState<number | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<Document[]>([]);
+  const [otherDocs, setOtherDocs] = useState<Record<string, Document>>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -196,6 +207,38 @@ export default function ApplicationFormPage() {
             <p className="mt-2 text-sm text-green-600 font-semibold">✓ {uploadedDocs[0].originalFilename} uploaded</p>
           )}
         </div>
+
+        {/* Other Required Documents */}
+        {draftId && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 text-sm mb-1">Required Documents</h3>
+            <p className="text-xs text-gray-400 mb-4">Upload each required document as a PDF (max 2 MB each).</p>
+            <div className="space-y-3">
+              {OTHER_DOCUMENT_TYPES.map(({ value, label, required }) => {
+                const uploaded = otherDocs[value];
+                return (
+                  <div key={value} className="flex items-center gap-4 py-2.5 px-3 rounded-xl border border-gray-100 bg-gray-50">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-700">{label}</span>
+                      {required && <span className="ml-1 text-xs text-red-400">*</span>}
+                      {uploaded && (
+                        <p className="text-xs text-green-600 font-semibold mt-0.5 truncate">
+                          ✓ {uploaded.originalFilename}
+                        </p>
+                      )}
+                    </div>
+                    <DocumentUpload
+                      applicationId={draftId}
+                      lockedDocumentType={value}
+                      compact
+                      onUploaded={(doc) => setOtherDocs((prev) => ({ ...prev, [value]: doc }))}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Confirmation */}
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">

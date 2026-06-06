@@ -1,314 +1,363 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { adminApi, type AdminApplication, type CourseExemption } from '../../shared/api/adminApi';
+import { adminApi, type AdminApplication } from '../../shared/api/adminApi';
 import Spinner from '../../shared/components/Spinner';
 
 const PRIMARY = '#8b1a1a';
 
-interface AddForm {
-  studentCourseName: string;
-  studentCourseCode: string;
-  studentCourseCredits: number;
-  studentCourseGrade?: string;
-  targetCourseName?: string;
-  targetCourseCode?: string;
-  targetCourseCredits?: number;
-}
-interface DecideForm { decision: string; decisionNote: string }
+interface TargetCourse { code: string; name: string; ects: number }
+interface TranscriptCourse { code: string; name: string; ects: number; grade: string; semester: string }
+interface Mapping { sourceCode: string | null; status: 'PENDING' | 'EQUIVALENT' | 'NOT_EQUIVALENT'; existingId?: number }
 
-const DECISION_CFG: Record<string, { bg: string; text: string }> = {
-  EXEMPT:   { bg: 'bg-green-50',  text: 'text-green-700'  },
-  PARTIAL:  { bg: 'bg-yellow-50', text: 'text-yellow-700' },
-  REJECTED: { bg: 'bg-red-50',    text: 'text-red-700'    },
-  PENDING:  { bg: 'bg-gray-100',  text: 'text-gray-500'   },
-};
+// ---------- Mock curriculum (IYTE Computer Engineering) ----------
+const IYTE_CURRICULUM: TargetCourse[] = [
+  { code: 'CS 101',   name: 'Introduction to Programming',    ects: 6 },
+  { code: 'CS 102',   name: 'Data Structures',               ects: 5 },
+  { code: 'MATH 101', name: 'Calculus I',                    ects: 7 },
+  { code: 'PHYS 101', name: 'Physics I',                     ects: 5 },
+  { code: 'CS 201',   name: 'Object-Oriented Programming',   ects: 8 },
+  { code: 'EE 101',   name: 'Circuit Theory',                ects: 4 },
+  { code: 'CS 301',   name: 'Algorithms',                    ects: 6 },
+  { code: 'MATH 201', name: 'Linear Algebra',                ects: 5 },
+];
+
+// ---------- Mock student transcript (demo data) ----------
+const MOCK_TRANSCRIPT: TranscriptCourse[] = [
+  { code: 'DES 101',  name: 'Design Fundamentals',       ects: 6, grade: 'AA', semester: 'Fall 2022' },
+  { code: 'ENG 102',  name: 'Engineering Drawing',       ects: 5, grade: 'BA', semester: 'Fall 2022' },
+  { code: 'PHY 101',  name: 'Physics I',                 ects: 5, grade: 'BB', semester: 'Fall 2022' },
+  { code: 'MATH 101', name: 'Calculus',                  ects: 7, grade: 'CB', semester: 'Fall 2022' },
+  { code: 'CS 101',   name: 'Intro to Programming',      ects: 6, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'DS 201',   name: 'Data Structures',           ects: 5, grade: 'BA', semester: 'Spring 2023' },
+  { code: 'MATH 201', name: 'Linear Algebra',            ects: 5, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'CS 201',   name: 'OOP Programming',           ects: 8, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'ALG 301',  name: 'Algorithm Analysis',        ects: 6, grade: 'BA', semester: 'Fall 2023' },
+  { code: 'EE 102',   name: 'Circuit Theory',            ects: 4, grade: 'BB', semester: 'Fall 2023' },
+];
+
+function groupBySemester(courses: TranscriptCourse[]): [string, TranscriptCourse[]][] {
+  const map = new Map<string, TranscriptCourse[]>();
+  for (const c of courses) {
+    if (!map.has(c.semester)) map.set(c.semester, []);
+    map.get(c.semester)!.push(c);
+  }
+  return [...map.entries()];
+}
 
 export default function IntibakSplitPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const appId = Number(id);
+
   const [app, setApp] = useState<AdminApplication | null>(null);
-  const [exemptions, setExemptions] = useState<CourseExemption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addError, setAddError] = useState<string | null>(null);
-  const addForm = useForm<AddForm>();
-  const decideForm = useForm<DecideForm>();
-  const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [mappings, setMappings] = useState<Record<string, Mapping>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
-      adminApi.intibakQueueList(),
-      adminApi.intibakListExemptions(appId),
-    ]).then(([listRes, exRes]) => {
-      setApp(listRes.data.data.find((a) => a.id === appId) ?? null);
-      setExemptions(exRes.data.data);
+      adminApi.intibakQueueList().catch(() => ({ data: { data: [] as AdminApplication[] } })),
+      adminApi.ygkList().catch(() => ({ data: { data: [] as AdminApplication[] } })),
+      adminApi.intibakListExemptions(appId).catch(() => ({ data: { data: [] } })),
+    ]).then(([intibakRes, ygkRes, exRes]) => {
+      const found =
+        (intibakRes.data.data as AdminApplication[]).find((a) => a.id === appId) ??
+        (ygkRes.data.data as AdminApplication[]).find((a) => a.id === appId) ??
+        null;
+      setApp(found);
+
+      // Initialize all mappings as empty
+      const init: Record<string, Mapping> = {};
+      for (const tc of IYTE_CURRICULUM) {
+        init[tc.code] = { sourceCode: null, status: 'PENDING' };
+      }
+      // Pre-fill from existing exemptions
+      for (const ex of exRes.data.data as import('../../shared/api/adminApi').CourseExemption[]) {
+        if (ex.targetCourseCode && init[ex.targetCourseCode]) {
+          init[ex.targetCourseCode] = {
+            sourceCode: ex.studentCourseCode,
+            status: ex.decision === 'EXEMPT' ? 'EQUIVALENT'
+                  : ex.decision === 'REJECTED' ? 'NOT_EQUIVALENT'
+                  : 'PENDING',
+            existingId: ex.id,
+          };
+        }
+      }
+      setMappings(init);
     }).finally(() => setLoading(false));
   }, [appId]);
 
-  async function onAddExemption(values: AddForm) {
-    setAddError(null);
-    try {
-      const res = await adminApi.intibakCreateExemption(appId, {
-        studentCourseCode: values.studentCourseCode,
-        studentCourseName: values.studentCourseName,
-        studentCourseCredits: Number(values.studentCourseCredits),
-        studentCourseGrade: values.studentCourseGrade || undefined,
-        targetCourseCode: values.targetCourseCode || undefined,
-        targetCourseName: values.targetCourseName || undefined,
-        targetCourseCredits: values.targetCourseCredits ? Number(values.targetCourseCredits) : undefined,
-      });
-      setExemptions((prev) => [...prev, res.data.data]);
-      addForm.reset();
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setAddError(err.response?.data?.error?.message ?? 'Failed to add course mapping.');
-    }
+  function patch(targetCode: string, p: Partial<Mapping>) {
+    setMappings((prev) => ({ ...prev, [targetCode]: { ...prev[targetCode], ...p } }));
   }
 
-  async function onDecide(exemptionId: number, values: DecideForm) {
+  function handleSelect(targetCode: string, sourceCode: string) {
+    patch(targetCode, { sourceCode: sourceCode || null, status: 'PENDING' });
+  }
+
+  function toggleEquivalent(targetCode: string) {
+    const m = mappings[targetCode];
+    if (!m.sourceCode) return;
+    patch(targetCode, { status: m.status === 'EQUIVALENT' ? 'PENDING' : 'EQUIVALENT' });
+  }
+
+  const equivalentEntries = Object.entries(mappings).filter(([, m]) => m.status === 'EQUIVALENT');
+  const totalExemptedCredits = equivalentEntries.reduce((s, [code]) => {
+    return s + (IYTE_CURRICULUM.find((c) => c.code === code)?.ects ?? 0);
+  }, 0);
+  const totalEcts = IYTE_CURRICULUM.reduce((s, c) => s + c.ects, 0);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
     try {
-      const res = await adminApi.intibakDecideExemption(appId, exemptionId, {
-        decision: values.decision,
-        decisionNote: values.decisionNote || undefined,
-      });
-      setExemptions((prev) => prev.map((e) => (e.id === exemptionId ? res.data.data : e)));
-      setDecidingId(null);
-      decideForm.reset();
-    } catch { /* ignore */ }
+      for (const [targetCode, mapping] of Object.entries(mappings)) {
+        if (!mapping.sourceCode) continue;
+        const tc = IYTE_CURRICULUM.find((c) => c.code === targetCode);
+        const sc = MOCK_TRANSCRIPT.find((c) => c.code === mapping.sourceCode);
+        if (!tc || !sc) continue;
+
+        let exemptionId = mapping.existingId;
+        if (!exemptionId) {
+          const res = await adminApi.intibakCreateExemption(appId, {
+            studentCourseCode: sc.code,
+            studentCourseName: sc.name,
+            studentCourseCredits: sc.ects,
+            studentCourseGrade: sc.grade,
+            targetCourseCode: tc.code,
+            targetCourseName: tc.name,
+            targetCourseCredits: tc.ects,
+          });
+          exemptionId = res.data.data.id;
+        }
+
+        if (mapping.status === 'EQUIVALENT') {
+          await adminApi.intibakDecideExemption(appId, exemptionId, {
+            decision: 'EXEMPT',
+            decisionNote: 'YGK tarafından eşdeğer olarak doğrulandı',
+          });
+        } else if (mapping.status === 'NOT_EQUIVALENT') {
+          await adminApi.intibakDecideExemption(appId, exemptionId, {
+            decision: 'REJECTED',
+            decisionNote: 'Eşdeğer değil',
+          });
+        }
+      }
+      navigate(-1);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setSaveError(err.response?.data?.error?.message ?? 'Kayıt başarısız.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <Spinner />;
 
+  const studentName = app ? `${app.studentFirstName} ${app.studentLastName}` : 'Demo Student';
+  const dept = app?.department ?? 'Computer Engineering';
+  const transcriptGroups = groupBySemester(MOCK_TRANSCRIPT);
+
   return (
-    <div className="p-6 md:p-10 max-w-6xl">
-      {/* Back */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-sm font-semibold mb-5 hover:opacity-75 transition-opacity"
-        style={{ color: PRIMARY, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Queue
-      </button>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      {/* Header */}
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Intibak — Course Exemptions</h1>
-      {app && (
-        <p className="text-sm text-gray-500 mb-6">
-          Application #{appId} · {app.studentFirstName} {app.studentLastName} · {app.studentEmail} · {app.term}
-        </p>
-      )}
+      {/* ── Breadcrumb + Title ── */}
+      <div style={{ padding: '14px 24px 12px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>
+          <button onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0, fontSize: 12 }}>
+            Öğrenci İnceleme
+          </button>
+          <span style={{ margin: '0 5px', color: '#d1d5db' }}>›</span>
+          <span style={{ color: '#374151', fontWeight: 600 }}>İntibak Hazırla</span>
+        </div>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111' }}>
+          İntibak Çalışma Sayfası: {studentName} &mdash; {dept}
+        </h2>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ─── Add Mapping Panel ─── */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-sm font-semibold text-gray-700 m-0">Add Course Mapping</h2>
+      {/* ── Split content ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ════ LEFT: Curriculum Matching ════ */}
+        <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px 0', flexShrink: 0 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Müfredat Eşleştirme</h3>
           </div>
-          <div className="p-5">
-            {addError && (
-              <div className="mb-4 px-3 py-2 text-sm rounded-lg bg-red-50 border border-red-200 text-red-700">
-                {addError}
-              </div>
-            )}
-            <form onSubmit={addForm.handleSubmit(onAddExemption)} className="flex flex-col gap-4">
-              {/* Student Course */}
-              <fieldset className="border border-gray-200 rounded-xl p-4">
-                <legend className="text-xs font-bold text-gray-400 uppercase tracking-wide px-1">Student Course</legend>
-                <div className="flex flex-col gap-3 mt-1">
-                  <FormField label="Name" required>
-                    <input
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200"
-                      {...addForm.register('studentCourseName', { required: true })}
-                    />
-                  </FormField>
-                  <FormField label="Code" required>
-                    <input
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 font-mono"
-                      {...addForm.register('studentCourseCode', { required: true })}
-                    />
-                  </FormField>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Credits" required>
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200"
-                        {...addForm.register('studentCourseCredits', { required: true, min: 1 })}
-                      />
-                    </FormField>
-                    <FormField label="Grade">
-                      <input
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200"
-                        placeholder="e.g. AA"
-                        {...addForm.register('studentCourseGrade')}
-                      />
-                    </FormField>
-                  </div>
-                </div>
-              </fieldset>
 
-              {/* Target Course */}
-              <fieldset className="border border-gray-200 rounded-xl p-4">
-                <legend className="text-xs font-bold text-gray-400 uppercase tracking-wide px-1">Target Curriculum Course</legend>
-                <div className="flex flex-col gap-3 mt-1">
-                  <FormField label="Name">
-                    <input
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200"
-                      {...addForm.register('targetCourseName')}
-                    />
-                  </FormField>
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Code">
-                      <input
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 font-mono"
-                        {...addForm.register('targetCourseCode')}
-                      />
-                    </FormField>
-                    <FormField label="Credits">
-                      <input
-                        type="number"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200"
-                        {...addForm.register('targetCourseCredits', { min: 1 })}
-                      />
-                    </FormField>
-                  </div>
-                </div>
-              </fieldset>
+          {/* Table */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <colgroup>
+                <col style={{ width: '34%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '12%' }} />
+              </colgroup>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                <tr style={{ background: '#f9fafb' }}>
+                  {['Hedef Ders (Müfredatımız)', 'Hedef AKTS', 'Eşdeğer Kaynak Ders', 'Not', 'Durum'].map((h) => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {IYTE_CURRICULUM.map((tc) => {
+                  const m = mappings[tc.code] ?? { sourceCode: null, status: 'PENDING' };
+                  const sc = MOCK_TRANSCRIPT.find((c) => c.code === m.sourceCode);
+                  return (
+                    <tr key={tc.code} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      {/* Target course */}
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 600, color: '#374151' }}>{tc.code}</span>
+                        <span style={{ color: '#6b7280', marginLeft: 6 }}>– {tc.name}</span>
+                      </td>
+                      {/* Target ECTS */}
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: '#374151' }}>
+                        {tc.ects}
+                      </td>
+                      {/* Source course dropdown */}
+                      <td style={tdStyle}>
+                        <select
+                          value={m.sourceCode ?? ''}
+                          onChange={(e) => handleSelect(tc.code, e.target.value)}
+                          style={selectStyle}
+                        >
+                          <option value="">Transkriptten ders seçin...</option>
+                          {MOCK_TRANSCRIPT.map((sc) => (
+                            <option key={sc.code} value={sc.code}>
+                              {sc.code} – {sc.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      {/* Source grade */}
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, color: '#111' }}>
+                        {sc?.grade ?? <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                      {/* Status badge / toggle */}
+                      <td style={tdStyle}>
+                        {m.sourceCode ? (
+                          <button onClick={() => toggleEquivalent(tc.code)} style={m.status === 'EQUIVALENT' ? badgeEquivalent : badgePending}>
+                            {m.status === 'EQUIVALENT' ? 'Eşdeğer' : 'Bekliyor'}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#e5e7eb' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
-              <button
-                type="submit"
-                disabled={addForm.formState.isSubmitting}
-                className="self-start px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-opacity disabled:opacity-50"
-                style={{ background: PRIMARY }}
-              >
-                {addForm.formState.isSubmitting ? 'Adding…' : 'Add Mapping'}
+          {/* ── Bottom bar ── */}
+          <div style={{ flexShrink: 0, borderTop: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+            <div style={{ fontSize: 13, color: '#374151' }}>
+              <strong>Toplam Muaf Kredi: {totalExemptedCredits}</strong>
+              <span style={{ margin: '0 14px', color: '#d1d5db' }}>|</span>
+              <strong>Toplam AKTS: {totalEcts}</strong>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {saveError && (
+                <span style={{ fontSize: 12, color: '#dc2626', maxWidth: 220 }}>{saveError}</span>
+              )}
+              <button onClick={() => navigate(-1)} style={cancelBtn}>İptal</button>
+              <button onClick={() => void handleSave()} disabled={saving} style={saveBtn}>
+                {saving ? 'Kaydediliyor…' : 'Kaydet & İntibakı Tamamla'}
               </button>
-            </form>
+            </div>
           </div>
         </div>
 
-        {/* ─── Mappings List Panel ─── */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-            <h2 className="text-sm font-semibold text-gray-700 m-0">
-              Course Mappings ({exemptions.length})
-            </h2>
+        {/* ════ RIGHT: Student Transcript ════ */}
+        <div style={{ flex: '0 0 38%', overflowY: 'auto', background: '#f9fafb', padding: '16px 18px' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Öğrenci Transkripti</h3>
+
+          {/* University header */}
+          <div style={transcriptCard}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#111', textAlign: 'center', letterSpacing: '0.03em' }}>
+              ANKARA UNIVERSITY
+            </div>
+            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', marginTop: 2 }}>Mühendislik Fakültesi</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', textAlign: 'center', marginTop: 2, letterSpacing: '0.05em' }}>
+              RESMİ TRANSKRİPT
+            </div>
           </div>
-          <div className="p-5">
-            {exemptions.length === 0 ? (
-              <p className="text-sm text-gray-400">No course mappings yet.</p>
-            ) : (
-              <div className="flex flex-col gap-4">
-                {exemptions.map((e) => {
-                  const cfg = DECISION_CFG[e.decision ?? 'PENDING'] ?? DECISION_CFG['PENDING'];
-                  return (
-                    <div key={e.id} className="border border-gray-100 rounded-xl p-4">
-                      {/* Course mapping row */}
-                      <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start mb-3">
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Student</div>
-                          <div className="font-mono text-xs font-bold text-gray-700">{e.studentCourseCode}</div>
-                          <div className="text-sm text-gray-800 mt-0.5">{e.studentCourseName}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {e.studentCourseCredits} cr{e.studentCourseGrade ? ` / ${e.studentCourseGrade}` : ''}
-                          </div>
-                        </div>
-                        <div className="text-gray-300 text-lg pt-5">→</div>
-                        <div>
-                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Target</div>
-                          {e.targetCourseCode ? (
-                            <>
-                              <div className="font-mono text-xs font-bold text-gray-700">{e.targetCourseCode}</div>
-                              <div className="text-sm text-gray-800 mt-0.5">{e.targetCourseName}</div>
-                              <div className="text-xs text-gray-400 mt-0.5">{e.targetCourseCredits} cr</div>
-                            </>
-                          ) : (
-                            <div className="text-xs text-gray-400 italic">Not mapped</div>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Decision badge + note */}
-                      <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${cfg.bg} ${cfg.text}`}>
-                          {e.decision ?? 'PENDING'}
-                        </span>
-                        {e.decisionNote && (
-                          <span className="text-xs text-gray-600">— {e.decisionNote}</span>
-                        )}
-                        {e.decidedByEmail && (
-                          <span className="text-xs text-gray-400">(by {e.decidedByEmail})</span>
-                        )}
-                      </div>
+          {/* Student info */}
+          <div style={{ ...transcriptCard, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+            {[
+              ['Öğrenci Adı', studentName],
+              ['Öğrenci No',  app?.studentNumber ?? 'S20260001'],
+              ['Program',      dept],
+            ].map(([label, val]) => (
+              <>
+                <span key={label + 'l'} style={{ color: '#9ca3af' }}>{label}</span>
+                <span key={label + 'v'} style={{ fontWeight: 600, color: '#111' }}>{val}</span>
+              </>
+            ))}
+          </div>
 
-                      {/* Decide inline form */}
-                      {(!e.decision || e.decision === 'PENDING') && (
-                        decidingId === e.id ? (
-                          <form
-                            onSubmit={decideForm.handleSubmit((v) => onDecide(e.id, v))}
-                            className="flex flex-wrap gap-2 items-center mt-2"
-                          >
-                            <select
-                              className="px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none"
-                              {...decideForm.register('decision', { required: true })}
-                            >
-                              <option value="">Decision…</option>
-                              <option value="EXEMPT">EXEMPT</option>
-                              <option value="PARTIAL">PARTIAL</option>
-                              <option value="REJECTED">REJECTED</option>
-                            </select>
-                            <input
-                              placeholder="Note (optional)"
-                              className="flex-1 min-w-[100px] px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none"
-                              {...decideForm.register('decisionNote')}
-                            />
-                            <button
-                              type="submit"
-                              className="px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
-                              style={{ background: PRIMARY }}
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDecidingId(null)}
-                              className="px-3 py-1.5 text-xs font-semibold text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
-                            >
-                              Cancel
-                            </button>
-                          </form>
-                        ) : (
-                          <button
-                            onClick={() => { setDecidingId(e.id); decideForm.reset(); }}
-                            className="mt-1 px-3 py-1 text-xs font-semibold rounded-lg border transition-colors hover:bg-gray-50"
-                            style={{ borderColor: PRIMARY, color: PRIMARY }}
-                          >
-                            Decide
-                          </button>
-                        )
-                      )}
+          {/* Courses by semester */}
+          {transcriptGroups.map(([semester, courses]) => {
+            const semEcts = courses.reduce((s, c) => s + c.ects, 0);
+            return (
+              <div key={semester} style={transcriptCard}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#111', marginBottom: 8 }}>{semester}</div>
+                {courses.map((c) => (
+                  <div key={c.code} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: 12 }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#374151', fontSize: 11 }}>{c.code}</span>
+                      <span style={{ color: '#6b7280', marginLeft: 5 }}>{c.name}</span>
                     </div>
-                  );
-                })}
+                    <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>{c.ects} ECTS</span>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: '#111', minWidth: 22, textAlign: 'right' }}>{c.grade}</span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af', textAlign: 'right', fontStyle: 'italic' }}>
+                  Dönem AKTS: {semEcts}
+                </div>
               </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
+/* ── Styles ── */
+const thStyle: React.CSSProperties = {
+  textAlign: 'left', padding: '8px 12px', fontSize: 11, fontWeight: 600,
+  color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em',
+  borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap',
+};
+const tdStyle: React.CSSProperties = { padding: '9px 12px', verticalAlign: 'middle' };
+const selectStyle: React.CSSProperties = {
+  width: '100%', padding: '5px 8px', border: '1px solid #d1d5db',
+  borderRadius: 5, fontSize: 12, background: '#fff', color: '#374151', cursor: 'pointer',
+};
+const badgeEquivalent: React.CSSProperties = {
+  padding: '3px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
+  fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#15803d',
+};
+const badgePending: React.CSSProperties = {
+  padding: '3px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
+  fontSize: 11, fontWeight: 700, background: '#f3f4f6', color: '#6b7280',
+};
+const cancelBtn: React.CSSProperties = {
+  padding: '7px 18px', border: '1px solid #d1d5db', borderRadius: 6,
+  background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+};
+const saveBtn: React.CSSProperties = {
+  padding: '7px 18px', border: 'none', borderRadius: 6,
+  background: PRIMARY, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+};
+const transcriptCard: React.CSSProperties = {
+  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8,
+  padding: '12px 14px', marginBottom: 10,
+};
