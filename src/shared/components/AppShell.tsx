@@ -5,6 +5,7 @@ import { logout } from '../../store/authSlice';
 import { notificationApi } from '../api/notificationApi';
 import NotificationPanel from '../../features/notifications/NotificationPanel';
 import iyteLogo from '../../assets/iyte-logo.png';
+import { useSessionTimeout } from '../hooks/useSessionTimeout';
 
 export default function AppShell() {
   const dispatch = useAppDispatch();
@@ -13,6 +14,8 @@ export default function AppShell() {
   const [unread, setUnread] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useSessionTimeout();
 
   useEffect(() => {
     notificationApi.unreadCount().then((r) => setUnread(r.data.data.unreadCount)).catch(() => {});
@@ -139,19 +142,28 @@ function buildNavLinks(role: string): { to: string; label: string; icon: string 
         { to: '/student/contact',         label: 'Contact & Support',            icon: '🎧' },
       ];
     case 'ROLE_OIDB':
-      return [{ to: '/admin/oidb/applications', label: 'Applications Inbox', icon: '📥' }];
+      return [
+        { to: '/admin/oidb/applications',      label: 'Applications Inbox',  icon: '📥' },
+        { to: '/admin/oidb/secondary-review',  label: 'Secondary Review',  icon: '🔍' },
+        { to: '/admin/oidb/results',           label: 'Results',           icon: '📋' },
+      ];
     case 'ROLE_YDYO':
-      return [{ to: '/admin/ydyo/applications', label: 'English Review Queue', icon: '📝' }];
+      return [{ to: '/admin/ydyo/applications', label: 'Students', icon: '📝' }];
     case 'ROLE_YGK':
-      return [{ to: '/admin/ygk/applications', label: 'Evaluation Queue', icon: '⚖️' }];
+      return [
+        { to: '/admin/ygk/applications', label: 'Evaluation Queue',    icon: '⚖️' },
+        { to: '/admin/ygk/placement',    label: 'Placement List', icon: '📊' },
+      ];
     case 'ROLE_INTIBAK':
       return [{ to: '/admin/intibak/applications', label: 'Intibak Queue', icon: '📋' }];
     case 'ROLE_ADMIN':
       return [
-        { to: '/admin/oidb/applications',    label: 'OIDB Inbox',     icon: '📥' },
-        { to: '/admin/ydyo/applications',    label: 'YDYO Queue',     icon: '📝' },
-        { to: '/admin/ygk/applications',     label: 'YGK Queue',      icon: '⚖️' },
-        { to: '/admin/intibak/applications', label: 'Intibak Queue',  icon: '📋' },
+        { to: '/admin/oidb/applications',     label: 'OIDB Inbox',          icon: '📥' },
+        { to: '/admin/oidb/secondary-review', label: 'Secondary Review',  icon: '🔍' },
+        { to: '/admin/ydyo/applications',     label: 'YDYO Queue',          icon: '📝' },
+        { to: '/admin/ygk/applications',      label: 'YGK Queue',           icon: '⚖️' },
+        { to: '/admin/ygk/placement',         label: 'Placement List',    icon: '📊' },
+        { to: '/admin/intibak/applications',  label: 'Intibak Queue',       icon: '📋' },
       ];
     default:
       return [];

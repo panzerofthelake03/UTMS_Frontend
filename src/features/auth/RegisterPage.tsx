@@ -75,6 +75,12 @@ export default function RegisterPage() {
     return () => clearTimeout(timer);
   }, [captcha.expiresInSeconds, captcha.captchaId, dispatch]);
 
+  // Auto-refresh CAPTCHA every 2 minutes regardless of server expiry
+  useEffect(() => {
+    const interval = setInterval(() => dispatch(fetchCaptcha()), 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
   useEffect(() => {
     if (user) navigate('/student/dashboard', { replace: true });
   }, [user, navigate]);
@@ -371,7 +377,14 @@ export default function RegisterPage() {
           id="password"
           type="password"
           style={styles.input}
-          {...register('password', { required: 'Required', minLength: { value: 8, message: 'Password must be at least 8 characters long.' } })}
+          {...register('password', {
+            required: 'Required',
+            minLength: { value: 8, message: 'Password must be at least 8 characters long.' },
+            pattern: {
+              value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+              message: 'Password must contain at least one uppercase letter, one lowercase letter, and one digit.',
+            },
+          })}
         />
         {errors.password && <span style={styles.fieldError}>{errors.password.message}</span>}
 
@@ -382,7 +395,13 @@ export default function RegisterPage() {
           style={styles.input}
           {...register('confirmPassword', {
             required: 'Required',
-            validate: (value) => value === passwordValue || 'Passwords do not match.',
+            validate: (value) => {
+              if (value !== passwordValue) return 'Passwords do not match.';
+              if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(value)) {
+                return 'Password must contain at least one uppercase letter, one lowercase letter, and one digit.';
+              }
+              return true;
+            },
           })}
         />
         {errors.confirmPassword && <span style={styles.fieldError}>{errors.confirmPassword.message}</span>}

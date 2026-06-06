@@ -5,6 +5,8 @@ import ApplicationStatusBadge from '../../shared/components/ApplicationStatusBad
 import Spinner from '../../shared/components/Spinner';
 import EmptyState from '../../shared/components/EmptyState';
 
+const PRIMARY = '#8b1a1a';
+
 export default function ApplicationListPage() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,60 +39,85 @@ export default function ApplicationListPage() {
   if (loading) return <Spinner />;
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={pageHeading}>My Applications</h2>
+    <div className="p-6 md:p-10 max-w-5xl">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-0.5">My Applications</h1>
+          <p className="text-sm text-gray-500">Track and manage your transfer applications.</p>
+        </div>
         <Link to="/student/applications/new">
-          <button style={primaryBtn}>+ New Application</button>
+          <button
+            className="px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-opacity hover:opacity-85"
+            style={{ background: PRIMARY }}
+          >
+            + New Application
+          </button>
         </Link>
       </div>
-      {serverError && <div style={errBox}>{serverError}</div>}
+
+      {serverError && (
+        <div className="mb-4 px-4 py-3 text-sm rounded-xl bg-red-50 border border-red-200 text-red-700">
+          {serverError}
+        </div>
+      )}
+
       {apps.length === 0 ? (
         <EmptyState message="You have no applications yet. Start one now!" />
       ) : (
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              {['#', 'Term', 'Status', 'Submitted', 'Created', ''].map((h) => (
-                <th key={h} style={th}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {apps.map((a) => (
-              <tr key={a.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={td}>{a.id}</td>
-                <td style={td}>{a.term}</td>
-                <td style={td}><ApplicationStatusBadge status={a.status} /></td>
-                <td style={td}>{a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '-'}</td>
-                <td style={td}>{new Date(a.createdAt).toLocaleDateString()}</td>
-                <td style={td}>
-                  <Link to={`/student/applications/${a.id}`} style={{ color: '#1d3c6e', fontSize: 13 }}>
-                    View
-                  </Link>
-                  {a.status === 'DRAFT' && (
-                    <button
-                      onClick={() => void handleDelete(a.id)}
-                      disabled={deletingId === a.id}
-                      style={deleteBtn}
-                    >
-                      {deletingId === a.id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse min-w-[520px]">
+              <thead>
+                <tr>
+                  {['#', 'Term', 'Status', 'Submitted', 'Created', ''].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100 bg-gray-50">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {apps.map((a) => (
+                  <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3 text-gray-500 font-mono text-xs">{a.id}</td>
+                    <td className="px-4 py-3 text-gray-700 font-medium">{a.term}</td>
+                    <td className="px-4 py-3"><ApplicationStatusBadge status={a.status} /></td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {new Date(a.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Link
+                          to={`/student/applications/${a.id}`}
+                          className="text-xs font-semibold hover:opacity-75 transition-opacity"
+                          style={{ color: PRIMARY }}
+                        >
+                          View
+                        </Link>
+                        {a.status === 'DRAFT' && (
+                          <button
+                            onClick={() => void handleDelete(a.id)}
+                            disabled={deletingId === a.id}
+                            className="text-xs font-semibold text-red-600 hover:text-red-800 transition-colors disabled:opacity-50"
+                          >
+                            {deletingId === a.id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
+            {apps.length} application{apps.length !== 1 ? 's' : ''}
+          </div>
+        </div>
       )}
     </div>
   );
 }
-
-const tableStyle: React.CSSProperties = { width: '100%', borderCollapse: 'collapse', fontSize: 14 };
-const pageHeading: React.CSSProperties = { margin: 0, color: '#1d3c6e' };
-const th: React.CSSProperties = { textAlign: 'left', padding: '8px 12px', background: '#f9fafb', fontWeight: 600, fontSize: 12, color: '#6b7280', textTransform: 'uppercase' };
-const td: React.CSSProperties = { padding: '10px 12px' };
-const primaryBtn: React.CSSProperties = { background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontWeight: 600 };
-const deleteBtn: React.CSSProperties = { marginLeft: 10, background: '#b91c1c', color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontWeight: 600, fontSize: 12 };
-const errBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '7px 10px', fontSize: 13, color: '#b91c1c', marginBottom: 10 };
