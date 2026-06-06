@@ -80,7 +80,7 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['ROLE_INTIBAK', 'ROLE_ADMIN']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['ROLE_INTIBAK', 'ROLE_YGK', 'ROLE_ADMIN']} />}>
               <Route element={<AppShell />}>
                 <Route path="/admin/intibak/applications" element={<IntibakQueuePage />} />
                 <Route path="/admin/intibak/applications/:id" element={<IntibakSplitPage />} />

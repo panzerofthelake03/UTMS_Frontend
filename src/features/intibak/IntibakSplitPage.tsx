@@ -1,187 +1,363 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { adminApi, type AdminApplication, type CourseExemption } from '../../shared/api/adminApi';
+import { adminApi, type AdminApplication } from '../../shared/api/adminApi';
 import Spinner from '../../shared/components/Spinner';
 
-interface AddForm {
-  studentCourseName: string;
-  studentCourseCode: string;
-  studentCourseCredits: number;
-  studentCourseGrade?: string;
-  targetCourseName?: string;
-  targetCourseCode?: string;
-  targetCourseCredits?: number;
-}
-interface DecideForm { decision: string; decisionNote: string }
+const PRIMARY = '#8b1a1a';
 
-const DECISION_COLORS: Record<string, string> = {
-  EXEMPT: '#16a34a',
-  PARTIAL: '#d97706',
-  REJECTED: '#dc2626',
-  PENDING: '#6b7280',
-};
+interface TargetCourse { code: string; name: string; ects: number }
+interface TranscriptCourse { code: string; name: string; ects: number; grade: string; semester: string }
+interface Mapping { sourceCode: string | null; status: 'PENDING' | 'EQUIVALENT' | 'NOT_EQUIVALENT'; existingId?: number }
+
+// ---------- Mock curriculum (IYTE Computer Engineering) ----------
+const IYTE_CURRICULUM: TargetCourse[] = [
+  { code: 'CS 101',   name: 'Introduction to Programming',    ects: 6 },
+  { code: 'CS 102',   name: 'Data Structures',               ects: 5 },
+  { code: 'MATH 101', name: 'Calculus I',                    ects: 7 },
+  { code: 'PHYS 101', name: 'Physics I',                     ects: 5 },
+  { code: 'CS 201',   name: 'Object-Oriented Programming',   ects: 8 },
+  { code: 'EE 101',   name: 'Circuit Theory',                ects: 4 },
+  { code: 'CS 301',   name: 'Algorithms',                    ects: 6 },
+  { code: 'MATH 201', name: 'Linear Algebra',                ects: 5 },
+];
+
+// ---------- Mock student transcript (demo data) ----------
+const MOCK_TRANSCRIPT: TranscriptCourse[] = [
+  { code: 'DES 101',  name: 'Design Fundamentals',       ects: 6, grade: 'AA', semester: 'Fall 2022' },
+  { code: 'ENG 102',  name: 'Engineering Drawing',       ects: 5, grade: 'BA', semester: 'Fall 2022' },
+  { code: 'PHY 101',  name: 'Physics I',                 ects: 5, grade: 'BB', semester: 'Fall 2022' },
+  { code: 'MATH 101', name: 'Calculus',                  ects: 7, grade: 'CB', semester: 'Fall 2022' },
+  { code: 'CS 101',   name: 'Intro to Programming',      ects: 6, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'DS 201',   name: 'Data Structures',           ects: 5, grade: 'BA', semester: 'Spring 2023' },
+  { code: 'MATH 201', name: 'Linear Algebra',            ects: 5, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'CS 201',   name: 'OOP Programming',           ects: 8, grade: 'AA', semester: 'Spring 2023' },
+  { code: 'ALG 301',  name: 'Algorithm Analysis',        ects: 6, grade: 'BA', semester: 'Fall 2023' },
+  { code: 'EE 102',   name: 'Circuit Theory',            ects: 4, grade: 'BB', semester: 'Fall 2023' },
+];
+
+function groupBySemester(courses: TranscriptCourse[]): [string, TranscriptCourse[]][] {
+  const map = new Map<string, TranscriptCourse[]>();
+  for (const c of courses) {
+    if (!map.has(c.semester)) map.set(c.semester, []);
+    map.get(c.semester)!.push(c);
+  }
+  return [...map.entries()];
+}
 
 export default function IntibakSplitPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const appId = Number(id);
+
   const [app, setApp] = useState<AdminApplication | null>(null);
-  const [exemptions, setExemptions] = useState<CourseExemption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addError, setAddError] = useState<string | null>(null);
-  const addForm = useForm<AddForm>();
-  const decideForm = useForm<DecideForm>();
-  const [decidingId, setDecidingId] = useState<number | null>(null);
+  const [mappings, setMappings] = useState<Record<string, Mapping>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
-      adminApi.intibakQueueList(),
-      adminApi.intibakListExemptions(appId),
-    ]).then(([listRes, exRes]) => {
-      setApp(listRes.data.data.find((a) => a.id === appId) ?? null);
-      setExemptions(exRes.data.data);
+      adminApi.intibakQueueList().catch(() => ({ data: { data: [] as AdminApplication[] } })),
+      adminApi.ygkList().catch(() => ({ data: { data: [] as AdminApplication[] } })),
+      adminApi.intibakListExemptions(appId).catch(() => ({ data: { data: [] } })),
+    ]).then(([intibakRes, ygkRes, exRes]) => {
+      const found =
+        (intibakRes.data.data as AdminApplication[]).find((a) => a.id === appId) ??
+        (ygkRes.data.data as AdminApplication[]).find((a) => a.id === appId) ??
+        null;
+      setApp(found);
+
+      // Initialize all mappings as empty
+      const init: Record<string, Mapping> = {};
+      for (const tc of IYTE_CURRICULUM) {
+        init[tc.code] = { sourceCode: null, status: 'PENDING' };
+      }
+      // Pre-fill from existing exemptions
+      for (const ex of exRes.data.data as import('../../shared/api/adminApi').CourseExemption[]) {
+        if (ex.targetCourseCode && init[ex.targetCourseCode]) {
+          init[ex.targetCourseCode] = {
+            sourceCode: ex.studentCourseCode,
+            status: ex.decision === 'EXEMPT' ? 'EQUIVALENT'
+                  : ex.decision === 'REJECTED' ? 'NOT_EQUIVALENT'
+                  : 'PENDING',
+            existingId: ex.id,
+          };
+        }
+      }
+      setMappings(init);
     }).finally(() => setLoading(false));
   }, [appId]);
 
-  async function onAddExemption(values: AddForm) {
-    setAddError(null);
-    try {
-      const res = await adminApi.intibakCreateExemption(appId, {
-        studentCourseCode: values.studentCourseCode,
-        studentCourseName: values.studentCourseName,
-        studentCourseCredits: Number(values.studentCourseCredits),
-        studentCourseGrade: values.studentCourseGrade || undefined,
-        targetCourseCode: values.targetCourseCode || undefined,
-        targetCourseName: values.targetCourseName || undefined,
-        targetCourseCredits: values.targetCourseCredits ? Number(values.targetCourseCredits) : undefined,
-      });
-      setExemptions((prev) => [...prev, res.data.data]);
-      addForm.reset();
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { error?: { message?: string } } } };
-      setAddError(err.response?.data?.error?.message ?? 'Failed to add course mapping.');
-    }
+  function patch(targetCode: string, p: Partial<Mapping>) {
+    setMappings((prev) => ({ ...prev, [targetCode]: { ...prev[targetCode], ...p } }));
   }
 
-  async function onDecide(exemptionId: number, values: DecideForm) {
+  function handleSelect(targetCode: string, sourceCode: string) {
+    patch(targetCode, { sourceCode: sourceCode || null, status: 'PENDING' });
+  }
+
+  function toggleEquivalent(targetCode: string) {
+    const m = mappings[targetCode];
+    if (!m.sourceCode) return;
+    patch(targetCode, { status: m.status === 'EQUIVALENT' ? 'PENDING' : 'EQUIVALENT' });
+  }
+
+  const equivalentEntries = Object.entries(mappings).filter(([, m]) => m.status === 'EQUIVALENT');
+  const totalExemptedCredits = equivalentEntries.reduce((s, [code]) => {
+    return s + (IYTE_CURRICULUM.find((c) => c.code === code)?.ects ?? 0);
+  }, 0);
+  const totalEcts = IYTE_CURRICULUM.reduce((s, c) => s + c.ects, 0);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
     try {
-      const res = await adminApi.intibakDecideExemption(appId, exemptionId, {
-        decision: values.decision,
-        decisionNote: values.decisionNote || undefined,
-      });
-      setExemptions((prev) => prev.map((e) => (e.id === exemptionId ? res.data.data : e)));
-      setDecidingId(null);
-      decideForm.reset();
-    } catch { /* ignore */ }
+      for (const [targetCode, mapping] of Object.entries(mappings)) {
+        if (!mapping.sourceCode) continue;
+        const tc = IYTE_CURRICULUM.find((c) => c.code === targetCode);
+        const sc = MOCK_TRANSCRIPT.find((c) => c.code === mapping.sourceCode);
+        if (!tc || !sc) continue;
+
+        let exemptionId = mapping.existingId;
+        if (!exemptionId) {
+          const res = await adminApi.intibakCreateExemption(appId, {
+            studentCourseCode: sc.code,
+            studentCourseName: sc.name,
+            studentCourseCredits: sc.ects,
+            studentCourseGrade: sc.grade,
+            targetCourseCode: tc.code,
+            targetCourseName: tc.name,
+            targetCourseCredits: tc.ects,
+          });
+          exemptionId = res.data.data.id;
+        }
+
+        if (mapping.status === 'EQUIVALENT') {
+          await adminApi.intibakDecideExemption(appId, exemptionId, {
+            decision: 'EXEMPT',
+            decisionNote: 'YGK tarafından eşdeğer olarak doğrulandı',
+          });
+        } else if (mapping.status === 'NOT_EQUIVALENT') {
+          await adminApi.intibakDecideExemption(appId, exemptionId, {
+            decision: 'REJECTED',
+            decisionNote: 'Eşdeğer değil',
+          });
+        }
+      }
+      navigate(-1);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: { message?: string } } } };
+      setSaveError(err.response?.data?.error?.message ?? 'Kayıt başarısız.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <Spinner />;
 
+  const studentName = app ? `${app.studentFirstName} ${app.studentLastName}` : 'Demo Student';
+  const dept = app?.department ?? 'Computer Engineering';
+  const transcriptGroups = groupBySemester(MOCK_TRANSCRIPT);
+
   return (
-    <div>
-      <button onClick={() => navigate(-1)} style={backBtn}>&#8592; Back to Queue</button>
-      <h2 style={{ marginTop: 0, color: '#1d3c6e' }}>Intibak &mdash; Course Exemptions</h2>
-      {app && (
-        <p style={{ fontSize: 13, color: '#6b7280', marginTop: -8, marginBottom: 16 }}>
-          Application #{appId} &middot; {app.studentFirstName} {app.studentLastName} &middot; {app.studentEmail} &middot; {app.term}
-        </p>
-      )}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-        <div style={panel}>
-          <h3 style={panelTitle}>Add Course Mapping</h3>
-          {addError && <div style={errBox}>{addError}</div>}
-          <form onSubmit={addForm.handleSubmit(onAddExemption)} style={formCol}>
-            <fieldset style={fieldsetStyle}>
-              <legend style={legendStyle}>Student Course</legend>
-              <label style={labelStyle} htmlFor="studentCourseName">Name *</label>
-              <input id="studentCourseName" style={inputStyle} {...addForm.register('studentCourseName', { required: true })} />
-              <label style={labelStyle} htmlFor="studentCourseCode">Code *</label>
-              <input id="studentCourseCode" style={inputStyle} {...addForm.register('studentCourseCode', { required: true })} />
-              <label style={labelStyle} htmlFor="studentCourseCredits">Credits *</label>
-              <input id="studentCourseCredits" type="number" style={inputStyle} {...addForm.register('studentCourseCredits', { required: true, min: 1 })} />
-              <label style={labelStyle} htmlFor="studentCourseGrade">Grade</label>
-              <input id="studentCourseGrade" style={inputStyle} {...addForm.register('studentCourseGrade')} />
-            </fieldset>
-            <fieldset style={fieldsetStyle}>
-              <legend style={legendStyle}>Target Curriculum Course</legend>
-              <label style={labelStyle} htmlFor="targetCourseName">Name</label>
-              <input id="targetCourseName" style={inputStyle} {...addForm.register('targetCourseName')} />
-              <label style={labelStyle} htmlFor="targetCourseCode">Code</label>
-              <input id="targetCourseCode" style={inputStyle} {...addForm.register('targetCourseCode')} />
-              <label style={labelStyle} htmlFor="targetCourseCredits">Credits</label>
-              <input id="targetCourseCredits" type="number" style={inputStyle} {...addForm.register('targetCourseCredits', { min: 1 })} />
-            </fieldset>
-            <button type="submit" disabled={addForm.formState.isSubmitting} style={primaryBtn}>Add Mapping</button>
-          </form>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+
+      {/* ── Breadcrumb + Title ── */}
+      <div style={{ padding: '14px 24px 12px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+        <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 4 }}>
+          <button onClick={() => navigate(-1)}
+            style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0, fontSize: 12 }}>
+            Öğrenci İnceleme
+          </button>
+          <span style={{ margin: '0 5px', color: '#d1d5db' }}>›</span>
+          <span style={{ color: '#374151', fontWeight: 600 }}>İntibak Hazırla</span>
         </div>
-        <div style={panel}>
-          <h3 style={panelTitle}>Course Mappings ({exemptions.length})</h3>
-          {exemptions.length === 0 && <p style={{ fontSize: 13, color: '#6b7280' }}>No course mappings yet.</p>}
-          {exemptions.map((e) => (
-            <div key={e.id} style={exemptionRow}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 8, alignItems: 'start' }}>
-                <div>
-                  <div style={courseLabel}>Student</div>
-                  <div style={courseCode}>{e.studentCourseCode}</div>
-                  <div style={courseName}>{e.studentCourseName}</div>
-                  <div style={courseMeta}>{e.studentCourseCredits} cr{e.studentCourseGrade ? ` / ${e.studentCourseGrade}` : ''}</div>
-                </div>
-                <div style={{ color: '#9ca3af', fontSize: 18, paddingTop: 18 }}>&#8594;</div>
-                <div>
-                  <div style={courseLabel}>Target</div>
-                  {e.targetCourseCode
-                    ? (<><div style={courseCode}>{e.targetCourseCode}</div><div style={courseName}>{e.targetCourseName}</div><div style={courseMeta}>{e.targetCourseCredits} cr</div></>)
-                    : <div style={{ fontSize: 12, color: '#9ca3af' }}>Not mapped</div>}
-                </div>
-              </div>
-              <div style={{ marginTop: 6, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: DECISION_COLORS[e.decision ?? 'PENDING'] ?? '#6b7280' }}>
-                  {e.decision ?? 'PENDING'}
-                </span>
-                {e.decisionNote && <span style={{ fontSize: 12, color: '#374151' }}>- {e.decisionNote}</span>}
-                {e.decidedByEmail && <span style={{ fontSize: 11, color: '#9ca3af' }}>(by {e.decidedByEmail})</span>}
-              </div>
-              {(!e.decision || e.decision === 'PENDING') && (
-                decidingId === e.id ? (
-                  <form onSubmit={decideForm.handleSubmit((v) => onDecide(e.id, v))}
-                    style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <select style={{ ...inputStyle, padding: '4px 8px', minWidth: 110 }} {...decideForm.register('decision', { required: true })}>
-                      <option value="">Decision...</option>
-                      <option value="EXEMPT">EXEMPT</option>
-                      <option value="PARTIAL">PARTIAL</option>
-                      <option value="REJECTED">REJECTED</option>
-                    </select>
-                    <input placeholder="Note" style={{ ...inputStyle, padding: '4px 8px', flex: 1 }} {...decideForm.register('decisionNote')} />
-                    <button type="submit" style={{ ...primaryBtn, padding: '5px 10px', fontSize: 12 }}>Save</button>
-                    <button type="button" onClick={() => setDecidingId(null)} style={{ ...secondaryBtn, padding: '5px 10px', fontSize: 12 }}>Cancel</button>
-                  </form>
-                ) : (
-                  <button onClick={() => { setDecidingId(e.id); decideForm.reset(); }} style={{ ...actionBtn, marginTop: 6 }}>Decide</button>
-                )
-              )}
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111' }}>
+          İntibak Çalışma Sayfası: {studentName} &mdash; {dept}
+        </h2>
+      </div>
+
+      {/* ── Split content ── */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ════ LEFT: Curriculum Matching ════ */}
+        <div style={{ flex: '0 0 62%', display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 24px 0', flexShrink: 0 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Müfredat Eşleştirme</h3>
+          </div>
+
+          {/* Table */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <colgroup>
+                <col style={{ width: '34%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '12%' }} />
+              </colgroup>
+              <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
+                <tr style={{ background: '#f9fafb' }}>
+                  {['Hedef Ders (Müfredatımız)', 'Hedef AKTS', 'Eşdeğer Kaynak Ders', 'Not', 'Durum'].map((h) => (
+                    <th key={h} style={thStyle}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {IYTE_CURRICULUM.map((tc) => {
+                  const m = mappings[tc.code] ?? { sourceCode: null, status: 'PENDING' };
+                  const sc = MOCK_TRANSCRIPT.find((c) => c.code === m.sourceCode);
+                  return (
+                    <tr key={tc.code} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      {/* Target course */}
+                      <td style={tdStyle}>
+                        <span style={{ fontWeight: 600, color: '#374151' }}>{tc.code}</span>
+                        <span style={{ color: '#6b7280', marginLeft: 6 }}>– {tc.name}</span>
+                      </td>
+                      {/* Target ECTS */}
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: '#374151' }}>
+                        {tc.ects}
+                      </td>
+                      {/* Source course dropdown */}
+                      <td style={tdStyle}>
+                        <select
+                          value={m.sourceCode ?? ''}
+                          onChange={(e) => handleSelect(tc.code, e.target.value)}
+                          style={selectStyle}
+                        >
+                          <option value="">Transkriptten ders seçin...</option>
+                          {MOCK_TRANSCRIPT.map((sc) => (
+                            <option key={sc.code} value={sc.code}>
+                              {sc.code} – {sc.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      {/* Source grade */}
+                      <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, color: '#111' }}>
+                        {sc?.grade ?? <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                      {/* Status badge / toggle */}
+                      <td style={tdStyle}>
+                        {m.sourceCode ? (
+                          <button onClick={() => toggleEquivalent(tc.code)} style={m.status === 'EQUIVALENT' ? badgeEquivalent : badgePending}>
+                            {m.status === 'EQUIVALENT' ? 'Eşdeğer' : 'Bekliyor'}
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#e5e7eb' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Bottom bar ── */}
+          <div style={{ flexShrink: 0, borderTop: '1px solid #e5e7eb', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fafafa' }}>
+            <div style={{ fontSize: 13, color: '#374151' }}>
+              <strong>Toplam Muaf Kredi: {totalExemptedCredits}</strong>
+              <span style={{ margin: '0 14px', color: '#d1d5db' }}>|</span>
+              <strong>Toplam AKTS: {totalEcts}</strong>
             </div>
-          ))}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {saveError && (
+                <span style={{ fontSize: 12, color: '#dc2626', maxWidth: 220 }}>{saveError}</span>
+              )}
+              <button onClick={() => navigate(-1)} style={cancelBtn}>İptal</button>
+              <button onClick={() => void handleSave()} disabled={saving} style={saveBtn}>
+                {saving ? 'Kaydediliyor…' : 'Kaydet & İntibakı Tamamla'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ════ RIGHT: Student Transcript ════ */}
+        <div style={{ flex: '0 0 38%', overflowY: 'auto', background: '#f9fafb', padding: '16px 18px' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#111' }}>Öğrenci Transkripti</h3>
+
+          {/* University header */}
+          <div style={transcriptCard}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#111', textAlign: 'center', letterSpacing: '0.03em' }}>
+              ANKARA UNIVERSITY
+            </div>
+            <div style={{ fontSize: 11, color: '#6b7280', textAlign: 'center', marginTop: 2 }}>Mühendislik Fakültesi</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', textAlign: 'center', marginTop: 2, letterSpacing: '0.05em' }}>
+              RESMİ TRANSKRİPT
+            </div>
+          </div>
+
+          {/* Student info */}
+          <div style={{ ...transcriptCard, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 12px', fontSize: 12 }}>
+            {[
+              ['Öğrenci Adı', studentName],
+              ['Öğrenci No',  app?.studentNumber ?? 'S20260001'],
+              ['Program',      dept],
+            ].map(([label, val]) => (
+              <>
+                <span key={label + 'l'} style={{ color: '#9ca3af' }}>{label}</span>
+                <span key={label + 'v'} style={{ fontWeight: 600, color: '#111' }}>{val}</span>
+              </>
+            ))}
+          </div>
+
+          {/* Courses by semester */}
+          {transcriptGroups.map(([semester, courses]) => {
+            const semEcts = courses.reduce((s, c) => s + c.ects, 0);
+            return (
+              <div key={semester} style={transcriptCard}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#111', marginBottom: 8 }}>{semester}</div>
+                {courses.map((c) => (
+                  <div key={c.code} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 8, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ fontSize: 12 }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#374151', fontSize: 11 }}>{c.code}</span>
+                      <span style={{ color: '#6b7280', marginLeft: 5 }}>{c.name}</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap' }}>{c.ects} ECTS</span>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: '#111', minWidth: 22, textAlign: 'right' }}>{c.grade}</span>
+                  </div>
+                ))}
+                <div style={{ marginTop: 6, fontSize: 11, color: '#9ca3af', textAlign: 'right', fontStyle: 'italic' }}>
+                  Dönem AKTS: {semEcts}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-const backBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#1d3c6e', cursor: 'pointer', fontSize: 13, padding: '0 0 12px', fontWeight: 600 };
-const panel: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 8, padding: '16px 20px' };
-const panelTitle: React.CSSProperties = { margin: '0 0 12px', fontSize: 15, color: '#1d3c6e' };
-const formCol: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6 };
-const fieldsetStyle: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 6, padding: '10px 12px', marginBottom: 8 };
-const legendStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#6b7280', padding: '0 4px' };
-const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 600, display: 'block', marginTop: 6 };
-const inputStyle: React.CSSProperties = { padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 14, width: '100%', boxSizing: 'border-box' as const };
-const primaryBtn: React.CSSProperties = { padding: '8px 16px', background: '#1d3c6e', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start' };
-const secondaryBtn: React.CSSProperties = { padding: '8px 16px', background: 'none', color: '#374151', border: '1px solid #d1d5db', borderRadius: 4, fontWeight: 600, cursor: 'pointer' };
-const actionBtn: React.CSSProperties = { background: 'none', border: '1px solid #1d3c6e', color: '#1d3c6e', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', fontSize: 12 };
-const errBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 4, padding: '7px 10px', fontSize: 13, color: '#b91c1c', marginBottom: 8 };
-const exemptionRow: React.CSSProperties = { borderBottom: '1px solid #f3f4f6', paddingBottom: 12, marginBottom: 12 };
-const courseLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, color: '#9ca3af', letterSpacing: '0.05em' };
-const courseCode: React.CSSProperties = { fontWeight: 700, fontSize: 13, fontFamily: 'monospace', color: '#1d3c6e' };
-const courseName: React.CSSProperties = { fontSize: 13, marginTop: 1 };
-const courseMeta: React.CSSProperties = { fontSize: 11, color: '#6b7280', marginTop: 2 };
+/* ── Styles ── */
+const thStyle: React.CSSProperties = {
+  textAlign: 'left', padding: '8px 12px', fontSize: 11, fontWeight: 600,
+  color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em',
+  borderBottom: '1px solid #e5e7eb', whiteSpace: 'nowrap',
+};
+const tdStyle: React.CSSProperties = { padding: '9px 12px', verticalAlign: 'middle' };
+const selectStyle: React.CSSProperties = {
+  width: '100%', padding: '5px 8px', border: '1px solid #d1d5db',
+  borderRadius: 5, fontSize: 12, background: '#fff', color: '#374151', cursor: 'pointer',
+};
+const badgeEquivalent: React.CSSProperties = {
+  padding: '3px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
+  fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#15803d',
+};
+const badgePending: React.CSSProperties = {
+  padding: '3px 10px', borderRadius: 12, border: 'none', cursor: 'pointer',
+  fontSize: 11, fontWeight: 700, background: '#f3f4f6', color: '#6b7280',
+};
+const cancelBtn: React.CSSProperties = {
+  padding: '7px 18px', border: '1px solid #d1d5db', borderRadius: 6,
+  background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+};
+const saveBtn: React.CSSProperties = {
+  padding: '7px 18px', border: 'none', borderRadius: 6,
+  background: PRIMARY, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+};
+const transcriptCard: React.CSSProperties = {
+  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8,
+  padding: '12px 14px', marginBottom: 10,
+};
