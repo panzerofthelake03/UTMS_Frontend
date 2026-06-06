@@ -45,9 +45,22 @@ export default function ApplicationFormPage() {
   }, []);
 
   useEffect(() => {
-    applicationApi.create({ term: 'DRAFT', englishProficiencyOption: 'DOCUMENT' })
-      .then((res) => setDraftId(res.data.data.id))
-      .catch(() => {});
+    // Reuse an existing DRAFT instead of creating a new one every visit
+    applicationApi.list().then((res) => {
+      const existing = res.data.data.find((a) => a.status === 'DRAFT');
+      if (existing) {
+        setDraftId(existing.id);
+      } else {
+        applicationApi.create({ term: 'DRAFT', englishProficiencyOption: 'DOCUMENT' })
+          .then((r) => setDraftId(r.data.data.id))
+          .catch(() => {});
+      }
+    }).catch(() => {
+      // fallback: create new draft if list fails
+      applicationApi.create({ term: 'DRAFT', englishProficiencyOption: 'DOCUMENT' })
+        .then((r) => setDraftId(r.data.data.id))
+        .catch(() => {});
+    });
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

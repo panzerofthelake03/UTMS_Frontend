@@ -41,12 +41,12 @@ export default function PdfViewerModal({ title, url, onClose }: Props) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              İndir
+              Download
             </a>
             <button
               onClick={onClose}
               className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-800 text-lg font-bold transition-colors"
-              aria-label="Kapat"
+              aria-label="Close"
             >
               ×
             </button>

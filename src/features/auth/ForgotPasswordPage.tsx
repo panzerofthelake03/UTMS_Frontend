@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
     try {
       const { data } = await authApi.forgotPassword({ email: email.trim().toLowerCase() });
       const payload = data.data;
-      if (!payload.emailFound) { setError('Bu e-posta adresi sistemde kayıtlı değil.'); return; }
+      if (!payload.emailFound) { setError('This email address is not registered in the system.'); return; }
       setStage('code'); resetDigits();
       setSecondsLeft(payload.expiresInSeconds ?? 180);
       if (isResend) setInfo('A new code has been sent.');

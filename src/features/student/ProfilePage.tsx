@@ -17,16 +17,22 @@ export default function StudentProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return <Spinner />;
-  }
+  if (loading) return <Spinner />;
 
   if (error) {
-    return <div style={errorStyle}>{error}</div>;
+    return (
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="px-4 py-3 text-sm rounded-xl bg-red-50 border border-red-200 text-red-700">{error}</div>
+      </div>
+    );
   }
 
   if (!profile) {
-    return <div style={errorStyle}>Profile data not found.</div>;
+    return (
+      <div className="p-6 md:p-10 max-w-2xl">
+        <div className="px-4 py-3 text-sm rounded-xl bg-red-50 border border-red-200 text-red-700">Profile data not found.</div>
+      </div>
+    );
   }
 
   const idNumber = profile.identityDocumentType === 'TC_ID'
@@ -42,100 +48,47 @@ export default function StudentProfilePage() {
     : formatDate(profile.passportExpirationDate);
 
   return (
-    <div style={containerStyle}>
-      <h2 style={titleStyle}>My Profile</h2>
-      <div style={cardStyle}>
-        <Row label="Full Name" value={profile.fullName} />
-        <Row label="Email" value={profile.email} />
-        <Row label="Nationality" value={toDisplayNationality(profile.nationality)} />
-        <Row label="Date of Birth (DD/MM/YYYY)" value={formatDate(profile.dateOfBirth)} />
-        <Row label="Identity Document Type" value={profile.identityDocumentType === 'TC_ID' ? 'National ID (TC)' : 'Passport'} />
-        <Row label="TC / Passport No" value={idNumber} />
-        <Row label={identityDetailLabel} value={identityDetailValue} />
-        <Row label="Current Program" value={profile.currentProgram} />
-        <Row label="Current University" value={profile.currentUniversity} />
+    <div className="p-6 md:p-10 max-w-2xl">
+      <h1 className="text-2xl font-bold text-gray-900 mb-5">My Profile</h1>
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <ProfileRow label="Full Name" value={profile.fullName} />
+        <ProfileRow label="Email" value={profile.email} />
+        <ProfileRow label="Nationality" value={toDisplayNationality(profile.nationality)} />
+        <ProfileRow label="Date of Birth" value={formatDate(profile.dateOfBirth)} />
+        <ProfileRow label="Identity Document Type" value={profile.identityDocumentType === 'TC_ID' ? 'National ID (TC)' : 'Passport'} />
+        <ProfileRow label="TC / Passport No" value={idNumber} />
+        <ProfileRow label={identityDetailLabel} value={identityDetailValue} last />
+        <ProfileRow label="Current Program" value={profile.currentProgram} />
+        <ProfileRow label="Current University" value={profile.currentUniversity} last />
       </div>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string | null | undefined }) {
+function ProfileRow({ label, value, last }: { label: string; value: string | null | undefined; last?: boolean }) {
   return (
-    <div style={rowStyle}>
-      <div style={labelStyle}>{label}</div>
-      <div style={valueStyle}>{value && value.trim() !== '' ? value : '-'}</div>
+    <div className={`grid grid-cols-[220px_1fr] ${last ? '' : 'border-b border-gray-50'}`}>
+      <div className="px-5 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center">
+        {label}
+      </div>
+      <div className="px-5 py-3 text-sm text-gray-800 font-medium">
+        {value && value.trim() !== '' ? value : '—'}
+      </div>
     </div>
   );
 }
 
 function formatDate(isoDate: string | null | undefined): string {
-  if (!isoDate) {
-    return '-';
-  }
-
+  if (!isoDate) return '—';
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-  if (!match) {
-    return isoDate;
-  }
-
+  if (!match) return isoDate;
   const [, year, month, day] = match;
   return `${day}/${month}/${year}`;
 }
 
 function toDisplayNationality(value: string | null | undefined): string {
-  if (!value) {
-    return '-';
-  }
-
-  if (value.toUpperCase() === 'TURKISH') {
-    return 'Turkish';
-  }
-
-  if (value.toUpperCase() === 'NON_TURKISH') {
-    return 'Non-Turkish';
-  }
-
+  if (!value) return '—';
+  if (value.toUpperCase() === 'TURKISH') return 'Turkish';
+  if (value.toUpperCase() === 'NON_TURKISH') return 'Non-Turkish';
   return value;
 }
-
-const containerStyle: React.CSSProperties = {
-  maxWidth: 760,
-};
-
-const titleStyle: React.CSSProperties = {
-  color: '#1d3c6e',
-  marginBottom: 16,
-};
-
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: 8,
-  overflow: 'hidden',
-};
-
-const rowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '280px 1fr',
-  borderBottom: '1px solid #f3f4f6',
-};
-
-const labelStyle: React.CSSProperties = {
-  background: '#f9fafb',
-  padding: '12px 14px',
-  fontWeight: 600,
-  color: '#374151',
-};
-
-const valueStyle: React.CSSProperties = {
-  padding: '12px 14px',
-  color: '#111827',
-};
-
-const errorStyle: React.CSSProperties = {
-  border: '1px solid #fca5a5',
-  background: '#fef2f2',
-  color: '#b91c1c',
-  borderRadius: 6,
-  padding: '12px 14px',
-};
